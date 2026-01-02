@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "tomeConfig",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "Tome",
-    "path": "folders/Tome.yy",
+  "$GMScript":"v1",
+  "%Name":"tomeConfig",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"tomeConfig",
+  "parent":{
+    "name":"Tome",
+    "path":"folders/Tome.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }
