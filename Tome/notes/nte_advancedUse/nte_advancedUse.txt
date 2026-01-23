@@ -12,8 +12,6 @@ GitHub pages can take a few minutes to update your site most times. To see a pre
     3. Use the command `docsify serve` to start your site running on a local server.
     4. Now, open your browser and type in the address bar: `http://localhost:3000`. Anytime your site is updated, the changes will instantly appear here as long as the command prompt is left open.
 
-?> Don't forget to pull your changes from GitHub each time you run your project or the changes will not show up locally!
-
 ## Inline HTML
 In Tome you can write HTML into your docs and it will be rendered as expected.
 

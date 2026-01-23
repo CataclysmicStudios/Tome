@@ -28,5 +28,5 @@ boo(far, bif);
 /// @desc A function that does something
 /// @ignore /// @slug some-slug
 /// @param {any} someParam A parameter that changes the behavior of the function
-/// @returns {null}
+/// @returns {undefined}
 ```

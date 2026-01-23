@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_testDuplicateTitle",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_testDuplicateTitle",
+  "parent":{
+    "name":"Tome",
+    "path":"Tome.yyp",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

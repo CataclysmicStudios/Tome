@@ -1,443 +1,294 @@
 //Non-userfacing functions/macros used to make the system work
 #macro __TOME_CAN_RUN (TOME_ENABLED && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
 
-#region __tome_http_request(endpoint, requestMethod, [callback], [callbackMetadata], [additionalHeaders])
-
-/// @func __tome_http_request(endpoint, requestMethod, [callback], [callbackMetadata], [additionalHeaders])
-/// @desc Sends an http request to the GitHub API using the standard application/json content type
-/// @param {string} endpoint The endpoint to complete the request url
-/// @param {string} requestMethod The type of http request being sent such as "GET", "POST", "PATCH", or "DELETE"
-/// @param {struct} requestBody The struct containing the data for the request body. Use -1 when sending no body.
-/// @param {function} callback The function to execute when a response to the request is received
-/// @param {any} callbackMetadata Additional data to pass into the callback function
-/// @param {struct} additionalHeaders Optional additional headers to include in the request
-function __tome_http_request(_endpoint, _requestMethod, _requestBody, _callback = -1, _callbackMetadata = -1, _additionalHeaders = -1){
-    // Prepare the url and headers
-    var _baseUrl = "https://api.github.com/" + _endpoint;
-    var _headers = ds_map_create();
-    ds_map_add(_headers, "Content-Type", "application/json");
-	
-	// Use the token defined in the config unless TOME_USE_EXTERNAL_TOKEN is true
-	var _authToken = TOME_GITHUB_AUTH_TOKEN;
-	
-	if (TOME_USE_EXTERNAL_TOKEN){
-		var _tokenBuffer = buffer_load(TOME_EXTERNAL_TOKEN_PATH);		
-		
-		if (_tokenBuffer == -1){
-			__tomeTrace("Cannot find local token file, check that the path specified by TOME_LOCAL_REPO_PATH is correct.");
-			buffer_delete(_tokenBuffer);
-			exit;
-		}
-		
-		try {
-			_authToken = string_replace_all(buffer_read(_tokenBuffer, buffer_text), "\\", "/");
-		}catch(_readError){
-			__tomeTrace("Cannot read local token file, make sure your token file is a text file with nothing but the token in it.");
-			exit;			
-		}
-		
-		buffer_delete(_tokenBuffer);
-	}
-	
-    ds_map_add(_headers, "Authorization", "token " + _authToken);
-
-    // Add any additional headers
-    if (_additionalHeaders != -1){
-        var _headerNames = ds_map_keys_to_array(_additionalHeaders);
-        var _i = 0;
-        repeat(array_length(_headerNames)){
-            var _currentHeaderName = _headerNames[_i];
-            ds_map_add(_headers, _currentHeaderName, _additionalHeaders[? _currentHeaderName]);
-            _i++;
-        }
-    }
-
-    // Send the HTTP request
-    var _bodyJson = (_requestBody != -1) ? json_stringify(_requestBody) : "";
-    var _requestId = http_request(_baseUrl, _requestMethod, _headers, _bodyJson);
-
-    // Handle the response callback
-    if (_callback != -1) {
-        __tome_http_add_request_to_sent(_requestId, _callback, _callbackMetadata);
-    }
-
-    // Cleanup
-    ds_map_destroy(_headers);
-}
-
-#endregion
-
-#region __tome_http_response_parse()
-
-/// @desc Parses the async_load map in a HTTP async event into a struct or array. Used in callback execution
-/// @return struct or array
-function __tome_http_response_parse(){
-	return json_parse(json_encode(async_load));	
-}
-
-#endregion
-
-#region __tome_http_response_result()
-
-/// @desc Parses the async_load map's "result" key in a HTTP async event which is typically the data you will be working with
-/// @return {Struct | array}
-function __tome_http_response_result(){
-	var _dataStruct = json_parse(json_encode(async_load));
-	
-	if (variable_struct_exists(_dataStruct, "result")){
-		try{
-			return json_parse(_dataStruct.result);	
-		}catch(_error){
-			return _dataStruct.result;	
-		}
-	}else{
-		return {};	
-	}
-}
-
-#endregion
-
-#region __tome_http_add_request_to_sent(requestId,[callback])
-
-/// @func __tome_http_add_request_to_sent(requestId,[callback])
-/// @desc Adds a new http request to the requestCallbacks array in the Tome controller object
-/// @param {real} requestId The id returned by http_request() 
-/// @param {function} callback Optional callback function to execute when a response to the request is received
-/// @param {function} callbackMetadata Optional additional data to pass into the callback function
-function __tome_http_add_request_to_sent(_requestId, _callback = -1, _callbackMetadata = -1){
-	var _request = new __tomeHttpRequest(_requestId, _callback, _callbackMetadata);
-	array_push(__tomeController.requestCallbacks, _request);
-}
-
-#endregion
-
-#region __tome_http_update_file(filePath, fileContent)
-
-/// @desc Updates the given file in the doc repo with the given file contents
-/// @param {string} filePath The path of the file within the repo
-/// @param {string} fileContents The file contents of the file being sent
-function __tome_http_update_file(_filePath, _fileContent){
-	var _encodedFileContent = base64_encode(_fileContent);
-
-	var _onDiskSha = __tome_generate_file_sha(_fileContent);
-	
-	// Callback function to handle the response
-	var  _sendFileUpdateRequest = function(_response, _metadata) {    
-		var _fileSha = "";
-		
-		var _responseIsBlank = true;
-		
-		if (is_struct(_response)){
-			_responseIsBlank = variable_struct_names_count(_response) < 1
-		}
-		
-		if (_response[$ "message"] != "Not Found" && !_responseIsBlank) {
-	        __tomeTrace(string("File exists: {0} SHA: {1}", _metadata.__filePath, _response.sha), true);
-			_fileSha = _response.sha;
-	    } else {
-	        __tomeTrace(string("File: `{0}` does not exist. Creating new file.", _metadata.__filePath), true);
-	    }
-			
-		//Update/Create the file
-		var _endpoint = "repos/" + TOME_GITHUB_USERNAME + "/" + TOME_GITHUB_REPO_NAME + "/contents/" + _metadata.__filePath + "?ref=" + TOME_GITHUB_REPO_BRANCH;;
-
-		// Build the request body
-		var _requestBody = {
-			message: string("Update {0}", _metadata.__filePath),
-			content: _metadata.__fileContent,
-		};
-			
-		//If the file already exists, add its sha to the request body
-		if (_fileSha != ""){
-			_requestBody[$ "sha"] = _fileSha;	
-		}
-				
-		var _responseCallback = function(_response, _metadata){
-			var _fileCommited = _response[$ "commit"] != undefined;
-			__tomeController.requestsCompleted++;
-
-			if (_fileCommited){
-				__tomeTrace(_metadata.__filePath + " commited!", true);	
-			}else{
-				__tomeTrace(_metadata.__filePath + " could NOT commit!", true);
-				//discord_log_console(_metadata.__filePath + " could NOT commit!");
-			}
-		}
-		
-		if (_metadata.__onDiskSha != _fileSha){
-			__tome_http_request(_endpoint, "PUT", _requestBody,  _responseCallback, {__filePath: _metadata.__filePath});
-		}else{
-			__tomeTrace(string("File: `{0}` not changed. No need to commit.", _metadata.__filePath), true);
-		}
-	}
-	
-	__tome_http_get_file_info(_filePath, _sendFileUpdateRequest, {__filePath: _filePath, __fileContent: _encodedFileContent, __onDiskSha: _onDiskSha});		
-}
-
-#endregion
-
-#region __tome_http_get_file_info(authToken, owner, repo, filePath, [branch], [callback])
-
-/// @func __tome_http_get_file_info(authToken, owner, repo, filePath, [branch], [callback])
-/// @desc Returns info about a file in a repo (like whether or not it exists, and it's SHA if it does)
-/// @param {string} filePath The path to the file in question
-/// @param {function} [callback] The function to execute when a response is received
-/// @param {any} [callbackMetadata] Additional data to pass into the callback function
-function __tome_http_get_file_info(_filePath,  _callback = -1, _callbackMetadata = -1) {
-    var _endpoint = "repos/" + TOME_GITHUB_USERNAME + "/" + TOME_GITHUB_REPO_NAME + "/contents/" + _filePath + "?ref=" + TOME_GITHUB_REPO_BRANCH;
-    __tome_http_request(_endpoint, "GET", -1, _callback, _callbackMetadata);
-}
-
-#endregion
-
-#region __tomeHttpRequest(id, callback = -1, callBackMetaData = -1) *constructor*
-
-/// @desc Created for each new http request made by tome 
-/// @param {real} id number returned by http_request()
-/// @param {function} callback A function to execute once a response is received from the request
-function __tomeHttpRequest(_id, _callback = -1, _callBackMetaData = -1) constructor {
-	__requestId = _id;
-	__callback = _callback;
-	__callbackMetadata = _callBackMetaData;
-}
-
-#endregion
-
-function __tome_local_update_file(_filePath, _fileContent){
-	var _fullFilePath = TOME_LOCAL_REPO_PATH + _filePath;
-	var _fileBuffer;
-	
-	if (is_string(_fileContent)){
-		_fileBuffer = buffer_create(0, buffer_grow, 1);
-	
-		buffer_write(_fileBuffer, buffer_text, _fileContent);
-	}else{
-		_fileBuffer = _fileContent;	
-	}
-	buffer_save(_fileBuffer, _fullFilePath);
-	buffer_delete(_fileBuffer);
-	
-	__tomeTrace("Local repo file updated: " + _filePath);
-	__tomeController.requestsCompleted++;
-}
-
-#region __tomeTrace(text)
-
-/// @Desc Outputs a message to the console prefixed with "Tome:"
-/// @param {string} text The message to display in the console
-/// @param {string} [verboseOnly] Whether the message should only be displayed if `TOME_VERBOSE` is enabled or not
-function __tomeTrace(_text, _verboseOnly = false){
-	if (_verboseOnly && TOME_VERBOSE){
-		show_debug_message("Tome: " + string(_text));	
-	}
-	
-	if (!_verboseOnly){
-		show_debug_message("Tome: " + string(_text));			
-	}
-}
-
-#endregion
-
-#region __tome_generate_docs()
-
-/// @func __tome_generate_docs()
-/// @desc Parses all files added via `tome_add_` functions and generates documentions for the files.  
+/// @desc Generates the documentation website
+/// @desc Parses all files added via `tome_add_` functions and generates your documenation site.  
 ///              Then it adds them to the repo path specified with the macro `TOME_REPO_PATH`
 function __tome_generate_docs(){
-	
+    var _repoDirectoryIsValid = __verifyRepoPath();
+    
+    if (!_repoDirectoryIsValid){
+        exit;
+    }
+    
 	// Check for duplicate files, because someone may accidentally add files multiple times.
+    __removeDuplicateFiles(global.__tomeData.filesToBeParsed);
+    // Same for slugs
+    __removeDuplicateFiles(global.__tomeData.slugNoteFilePaths);
+    
+	__parseAllSlugs();
 	
-	for (var _fileIndex = 0; _fileIndex < array_length(global.__tomeSlugArray); _fileIndex++){
-		for (var _checkIndex = _fileIndex; _checkIndex < array_length(global.__tomeSlugArray); _checkIndex++){
-			if (_checkIndex != _fileIndex){
-				if (global.__tomeSlugArray[_checkIndex] == global.__tomeSlugArray[_fileIndex]){
-					array_delete(global.__tomeSlugArray, _checkIndex, 1);
-					_checkIndex--;	
-				}
-			}
-		}
-	}
-	
-	for (var _fileIndex = 0; _fileIndex < array_length(global.__tomeFileArray); _fileIndex++){
-		for (var _checkIndex = _fileIndex; _checkIndex < array_length(global.__tomeFileArray); _checkIndex++){
-			if (_checkIndex != _fileIndex){
-				if (global.__tomeFileArray[_checkIndex] == global.__tomeFileArray[_fileIndex]){
-					array_delete(global.__tomeFileArray, _checkIndex, 1);
-					_checkIndex--;	
-				}
-			}
-		}
-	}
-	
-	var _slugIndex = 0;
-	repeat (array_length(global.__tomeSlugArray)){
-		__tome_parse_markdown_slugs(global.__tomeSlugArray[_slugIndex]);
-		_slugIndex++;	
-	}
-	
-	//Holds category/title pairs
-	var _categories = {
-		none: []	
-	}
-	
-	//Create queue for updating the repo files
-	var _updateRate = (TOME_LOCAL_REPO_MODE) ? 1 : 60;
-	
-	var _fileUpdateQueue = new __tome_funcQueue(_updateRate);
-	
-	var _updateFunction = (TOME_LOCAL_REPO_MODE) ? __tome_local_update_file : __tome_http_update_file;
-	
-	//Add basic docsify files
-	var configFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/config.js");
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + "config.js", configFileContents]);
-	
-	var _indexFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/index.html");
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + "index.html", _indexFileContents]);
-	
-	var _codeThemeFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/codeTheme.css");
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + "assets/codeTheme.css", _codeThemeFileContents]);
-	
-	var _customThemeFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/customTheme.css");
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + "assets/customTheme.css", _customThemeFileContents]);
-	
-	var _iconFileContents = __tome_file_bin_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/docsIcon.png");
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + "assets/docsIcon.png", _iconFileContents]);
-	
-	_fileUpdateQueue.addFunction(_updateFunction, [TOME_GITHUB_REPO_DOC_DIRECTORY + ".nojekyll", ""]);
+	__updateDocsifyFiles();
 
-	//Update homepage 
-	_fileUpdateQueue.addFunction(_updateFunction, [__tome_file_get_final_doc_path() + "README.md", global.__tomeHomepage]);
+	// Update homepage 
+    __tomeTrace("Updating homepage", true, 2, false);
+    __updateFile($"{__tome_file_get_final_doc_path()}.README.md", global.__tomeData.homepageContent);
 
-	var _i = 0;
-	var _functionCallDelay = 15;
-	var _categoriesNames = array_create(0);
+	__generateDocFiles();
+    
+    __addAdditionalSidebarItemsToSidebarData();
 	
-	//Parse each file and add it to the repo
-	repeat (array_length(global.__tomeFileArray)){
-		//Parse file and get results
-		var _currentPath = global.__tomeFileArray[_i];
-		var _fileExtension = __tome_file_get_extension(_currentPath);
-		var _docStruct = _fileExtension == "gml" ? __tome_parse_script(_currentPath) : __tome_parse_markdown(_currentPath);
-		
-		//Push the docs to the repo
-		var _fullFilePath =  string("{0}{1}.md", __tome_file_get_final_doc_path(), string_replace_all(_docStruct.title, " ", "-"))
-		_fileUpdateQueue.addFunction(_updateFunction, [_fullFilePath, _docStruct.markdown]);
-		
-		//Add this file's category to the _categories struct
-		if (_docStruct.category == ""){
-			array_push(_categories.none, _docStruct.title);
-		}else{
-			if (variable_struct_exists(_categories, _docStruct.category)){
-				array_push(_categories[$ _docStruct.category], _docStruct.title);
-			}else{
-				array_push(_categoriesNames, _docStruct.category);
-				_categories[$ _docStruct.category] = [_docStruct.title];
-			}
-		}
-		
-		_i++;
-	}
+	__generateSidebar();
+    
+    __generateNavbar();
+    
+    #region SubFunctions
+    
+    /// @desc Parsing each added file and generates doc pages for them
+    function __generateDocFiles(){
+        var _i = 0;
 	
-	//Sidebar
-	
-	//Add additional items to the sidebar
-	_i = 0;
+    	// Parse each file and add it to the repo
+    	repeat (array_length(global.__tomeData.filesToBeParsed)){
+    		// Parse file and get results
+    		var _currentFilePath = global.__tomeData.filesToBeParsed[_i];
+    		var _fileExtension = __tome_file_get_extension(_currentFilePath);
+    		var _docStruct = _fileExtension == "gml" ? __tome_parse_script(_currentFilePath) : __tome_parse_markdown(_currentFilePath);
+    		// Save the .md files to the local repo directory
+            var _pageTitleWithSpacesReplacedWithDashes = string_replace_all(_docStruct.title, " ", "-");
+    		var _fullFilePath = $"{__tome_file_get_final_doc_path()}{string_replace_all(_docStruct.category, " ", "-")}-{_pageTitleWithSpacesReplacedWithDashes}.md";
+            __updateFile(_fullFilePath, _docStruct.markdown);
+    		
+    		// Add this file's category to the global.__tomeData.categories struct
+    		if (_docStruct.category == ""){
+    			array_push(global.__tomeData.categories.none, _docStruct.title);
+    		}else{
+    			if (!variable_struct_exists(global.__tomeData.categories, _docStruct.category)){
+                    global.__tomeData.categories[$ _docStruct.category] = []  
+                }
+                
+                if (array_get_index(global.__tomeData.categories[$ _docStruct.category], _docStruct.title) == -1){
+                    array_push(global.__tomeData.categories[$ _docStruct.category], _docStruct.title);
+                }
+    		}
+    		
+    		_i++;
+    	}
+    }
+    
+    /// @desc Updates basic docsify files: Config.js, index.html, codeTheme.css, customTheme.css, docsIcon.png, and .nojekyll
+    function __updateDocsifyFiles(){
+        __tomeTrace("Updating Docsify files", true, 2, false);
+        
+        var _configFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/config.js");
+    	__updateFile($"{global.__tomeData.repoFilePath}config.js", _configFileContents);
+    	
+    	var _indexFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/index.html");
+        __updateFile($"{global.__tomeData.repoFilePath}index.html", _indexFileContents);
+    	
+    	var _codeThemeFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/codeTheme.css");
+        __updateFile($"{global.__tomeData.repoFilePath}assets/codeTheme.css", _codeThemeFileContents);
+    	
+    	var _customThemeFileContents = __tome_file_text_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/customTheme.css");
+        __updateFile($"{global.__tomeData.repoFilePath}assets/customTheme.css", _customThemeFileContents);
+    	
+    	var _iconFileContents = __tome_file_bin_read_all(__tome_file_project_get_directory() +  "datafiles/Tome/assets/docsIcon.png");
+    	__updateFile($"{global.__tomeData.repoFilePath}assets/docsIcon.png", _iconFileContents);
+        
+        __updateFile($"{global.__tomeData.repoFilePath}.nojekyll", "");
+    }
+    
+    /// @desc Removes duplicate files names from an array
+    /// @param {array<string>} fileArray The array of file names
+    function __removeDuplicateFiles(_fileArray){
+        for (var _fileIndex = 0; _fileIndex < array_length(_fileArray); _fileIndex++){
+    		for (var _checkIndex = _fileIndex; _checkIndex < array_length(_fileArray); _checkIndex++){
+    			if (_checkIndex != _fileIndex){
+    				if (_fileArray[_checkIndex] == _fileArray[_fileIndex]){
+    					array_delete(_fileArray, _checkIndex, 1);
+    					_checkIndex--;	
+    				}
+    			}
+    		}
+    	}
+    }
+    
+    /// @desc Updates a given file, with the given content
+    /// @param {string} _filePath The path to the file to update
+    /// @param {string|buffer} fileContent The data to save out to disk
+    function __updateFile(_filePath, _fileContent){
+    	var _fileBuffer;
+    	
+    	if (is_string(_fileContent)){
+    		_fileBuffer = buffer_create(0, buffer_grow, 1);
+    	
+    		buffer_write(_fileBuffer, buffer_text, _fileContent);
+    	}else{
+    		_fileBuffer = _fileContent;	
+    	}
+        
+    	buffer_save(_fileBuffer, _filePath);
+    	buffer_delete(_fileBuffer);
+    	
+    	__tomeTrace("Local repo file updated: " + _filePath, true, 3, false);
+    }
+    
+    /// @desc Parses all slug notes and adds the slugs to global.__tomeData.slugs
+    function __parseAllSlugs(){
+        var _slugIndex = 0;
+    	repeat (array_length(global.__tomeData.slugNoteFilePaths)){
+    		__tome_parse_markdown_slug(global.__tomeData.slugNoteFilePaths[_slugIndex]);
+    		_slugIndex++;	
+    	}
+    }
+    
+    /// @desc Makes sure TOME_LOCAL_REPO path is a valid directory
+    function __verifyRepoPath(){
+        // In case the user didn't end their repo filepath with "/", add it
+        if (!string_ends_with(TOME_LOCAL_REPO_PATH, "/")){
+            var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH + "/";
+        }else{
+            var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH; 
+        }
+        
+        if (!directory_exists(_repoPathWithAddedForwardSlash)){
+            __tomeTrace($"The repo path: \"{_repoPathWithAddedForwardSlash}\" isn't a valid filepath, make sure the directory actually exists!", false, 1, false);
+            global.__tomeData.docGenerationFailed = true;
+            return false;
+        }
+        
+        global.__tomeData.repoFilePath = _repoPathWithAddedForwardSlash;
+        return true;
+    }
+    
+    /// @desc Adds any additional sidebar specified by the user to `global.__tomeData.categories` for generation
+    function __addAdditionalSidebarItemsToSidebarData(){
+        var _i = 0;
 
-	repeat(array_length(global.__tomeAdditionalSidebarItemsArray)){
-		var _currentSidebarItem = global.__tomeAdditionalSidebarItemsArray[_i];
-
-		//Add this file's category to the _categories struct
-		if (_currentSidebarItem.category == ""){
-			array_push(_categories.none, _currentSidebarItem.title);
-		}else{
-			if (variable_struct_exists(_categories, _currentSidebarItem.category)){
-				array_push(_categories[$ _currentSidebarItem.category], {title: _currentSidebarItem.title, link: _currentSidebarItem.link});
-			}else{
-				array_push(_categoriesNames, _currentSidebarItem.category);
-				_categories[$ _currentSidebarItem.category] = [{title: _currentSidebarItem.title, link: _currentSidebarItem.link}];
-			}
-		}
-		
-		_i++;
-	}
-	
-	var _sideBarMarkdownString = "";
-	_sideBarMarkdownString += "-    [Home](README)\n\n---\n\n"
-	
-	
-	var _a = 0;
-	
-	repeat(array_length(_categoriesNames)){
-		var _currentCategory = _categoriesNames[_a];
-		
-		if (_currentCategory != "none"){
-			_sideBarMarkdownString += string("**{0}**\n\n", _currentCategory);			
-		}
-		
-		var _b = 0; 
-		var _categoryArrayLength = array_length(_categories[$ _currentCategory]);
-		
-		repeat(_categoryArrayLength){
-			var _currentCategoryArray = _categories[$ _currentCategory];
-			
-			if (is_struct(_currentCategoryArray[_b])){
-				var _currentPageTitle = _currentCategoryArray[_b].title;
-				var _currentPageLink = _currentCategoryArray[_b].link;
-				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageLink);
-			
-				if (_b == (_categoryArrayLength - 1)){
-					_sideBarMarkdownString += "\n---\n\n";	
-				}
-			}else{
-				var _currentPageTitle = _currentCategoryArray[_b];
-				var _currentPageFileName = string_replace_all( _currentPageTitle, " ", "-");
-				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageFileName);
-			
-				if (_b == (_categoryArrayLength - 1)){
-					_sideBarMarkdownString += "\n---\n\n";	
-				}
-			}
-			_b++;
-		}
-		
-		_a++;
-	}
-
-	//Navbar links
-	var _navbarMarkdownString = "";
-
-	_i = 0;
-
-	repeat(array_length(global.__tomeNavbarItemsArray)){
-		var _currentNavbarItem = global.__tomeNavbarItemsArray[_i];
-		_navbarMarkdownString += string("-    [{0}]({1})\n", _currentNavbarItem.name, _currentNavbarItem.link);
-		_i++;
-	}
-		
-	_fileUpdateQueue.addFunction(_updateFunction, [__tome_file_get_final_doc_path() + "_navbar.md", _navbarMarkdownString]);
-	_fileUpdateQueue.addFunction(_updateFunction, [__tome_file_get_final_doc_path() + "_sidebar.md", _sideBarMarkdownString]);
-	_fileUpdateQueue.start();
+    	repeat(array_length(global.__tomeData.additionalSidebarItems)){
+    		var _currentSidebarItem = global.__tomeData.additionalSidebarItems[_i];
+    
+    		//Add this file's category to the _categories struct
+    		if (_currentSidebarItem.category == ""){
+    			array_push(global.__tomeData.categories.none, _currentSidebarItem.title);
+    		}else{
+    			if (variable_struct_exists(global.__tomeData.categories, _currentSidebarItem.category)){
+    				array_push(global.__tomeData.categories[$ _currentSidebarItem.category], {title: _currentSidebarItem.title, link: _currentSidebarItem.link});
+    			}else{
+    				global.__tomeData.categories[$ _currentSidebarItem.category] = [{title: _currentSidebarItem.title, link: _currentSidebarItem.link}];
+    			}
+    		}
+    		
+    		_i++;
+    	}
+    }
+    
+    /// @desc Generates the sidebar for the doc site
+    function __generateSidebar(){
+        var _sideBarMarkdownString = "";
+    	_sideBarMarkdownString += "-    [Home](README)\n\n---\n\n"
+    	
+        var _categoriesNames = struct_get_names(global.__tomeData.categories);
+        var _a = 0;
+    	
+    	repeat(array_length(_categoriesNames)){
+    		var _currentCategory = _categoriesNames[_a];
+    		
+    		if (_currentCategory != "none"){
+    			_sideBarMarkdownString += string("**{0}**\n\n", _currentCategory);			
+    		}
+    		
+    		var _b = 0; 
+    		var _categoryArrayLength = array_length(global.__tomeData.categories[$ _currentCategory]);
+    		
+    		repeat(_categoryArrayLength){
+    			var _currentCategoryArray = global.__tomeData.categories[$ _currentCategory];
+    			
+    			if (is_struct(_currentCategoryArray[_b])){
+    				var _currentPageTitle = _currentCategoryArray[_b].title;
+    				var _currentPageLink = _currentCategoryArray[_b].link;
+    				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageLink);
+    			
+    				if (_b == (_categoryArrayLength - 1)){
+    					_sideBarMarkdownString += "\n---\n\n";	
+    				}
+    			}else{
+    				var _currentPageTitle = _currentCategoryArray[_b];
+    				var _currentPageFileName = string_replace_all( _currentPageTitle, " ", "-");
+    				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageFileName);
+    			
+    				if (_b == (_categoryArrayLength - 1)){
+    					_sideBarMarkdownString += "\n---\n\n";	
+    				}
+    			}
+    			_b++;
+    		}
+    		_a++;
+    	}   
+        
+        __updateFile($"{__tome_file_get_final_doc_path()}_sidebar.md", _sideBarMarkdownString); 
+    }
+    
+    /// @desc Generates the navbar for the doc site
+    function __generateNavbar(){
+    	var _navbarMarkdownString = "";
+    
+    	var _i = 0;
+    
+    	repeat(array_length(global.__tomeData.navbarItems)){
+    		var _currentNavbarItem = global.__tomeData.navbarItems[_i];
+    		_navbarMarkdownString += string("-    [{0}]({1})\n", _currentNavbarItem.name, _currentNavbarItem.link);
+    		_i++;
+    	}
+    		
+        __updateFile($"{__tome_file_get_final_doc_path()}_navbar.md", _navbarMarkdownString);
+    }
+    
+    #endregion
 }
 
-#endregion
-
-#region __tome_parse_script(filepath)
 /// @desc Parses a GML file and generates markdown documentation.
 /// @param {string} filepath Path to the GML file.
 /// @returns {struct} Struct containing the markdown text, title, and category
 function __tome_parse_script(_filepath) {
-    var _file = file_text_open_read(_filepath);
-	var _markdown = "";
-	var _category = "";
-	var _title = "";
-	
-    if (_file == -1) {
-        __tomeTrace("Failed to open file: " + _filepath);
-		return {
+    var _markdown = ""; // The final markdown string that will be returned
+
+    // Here we are looking specifically for the @title and @category tags
+    // If a file with the same category and tag already exist, we want to load that file and append this new script's content to it
+    var _titleAndCategoryStruct = __getFileTitleAndCategory(_filepath);
+    
+    var _title = _titleAndCategoryStruct.title;
+    var _category = _titleAndCategoryStruct.category;
+    
+    var _titleFound = (_title != "");
+    var _categoryFound = (_category != "");
+    
+    // Stop trying to parse the script right away if a title for the page cannot be found
+    if (!_titleFound){
+        __tomeTrace($"No @title tag can be found for: {_filepath}", false, 2, false);
+        return {
 			markdown: _markdown,
 			category: _category,
 			title: _title
 		};
+    }
+    
+    if (!_categoryFound){
+        _category = "none";
+    }
+    
+    // Now lets figure out if there is a page with the same title and category that has already been parsed
+    var _titleAlreadyExistsInCategory = false;
+    var _titleFilePath = "";
+    var _categoryTitles = global.__tomeData.categories[$ _category];
+    var _categoryAlreadyExists = _categoryTitles != undefined ? true : false;
+    var _titleWithNoDashes = string_replace_all(_title, "-", " ");
+    
+    if (_categoryAlreadyExists){
+        if (array_get_index(_categoryTitles, _titleWithNoDashes) != -1){
+            _titleAlreadyExistsInCategory = true;
+            var _categoryWithDashesInsteadOfSpaces = string_replace_all(_category, " ", "-");
+            _titleFilePath = $"{__tome_file_get_final_doc_path()}{_categoryWithDashesInsteadOfSpaces}-{_title}.md";
+            __tomeTrace($"The title: {_title} is already present in the category: {_category}, content for this script will be appended onto the existing .md file", true, 3, false); 
+        }           
+    }
+    
+    if (_titleAlreadyExistsInCategory){
+        _title = _titleWithNoDashes;
+        
+        if (file_exists(_titleFilePath)){
+            _markdown = __tome_file_text_read_all(_titleFilePath) + "\n </div> <br>\n"; // Add the existing content to the markdown string
+        }
     }
 	
 	var _textBoxStarted = false;
@@ -448,22 +299,28 @@ function __tome_parse_script(_filepath) {
 	var _inConstructor = false;
 	var _funcStarted = false;
 	var _inFunc = false;
+	var _inMethod = false;
+    var _currentInFunc = "";
 	var _foundReturn = false;
 	var _tableStarted = false;
 	var _inTable = false;
 	var _codeBlockStarted = false;
 	var _inCodeBlock = false;
 	var _ignoring = false;
+    var _previousTag = "@none";
+    var _tagType = "";
+    
+    var _file = file_text_open_read(_filepath);
 
     //Loop through each line of the text file
 	while (!file_text_eof(_file)) {
 		var _lineString = file_text_readln(_file);
-		
+		var _rawUneditedLineString = _lineString;
+        
 		/// Added removal of #region tags as the line may not always begin with "///" but may begin with "#region ///"
 		if (string_starts_with(string_trim_start(_lineString), "#region")){
 			_lineString = string_replace(_lineString, "#region", "");
 		}
-		
 		
 		//If the line has text to parse, it will start with "///"
 		if (string_starts_with(string_trim_start(_lineString), "///")){
@@ -482,9 +339,9 @@ function __tome_parse_script(_filepath) {
 			if (string_count("@", _lineString) > 0){
 				_lineString = string_trim(_lineString);
 				
-				//var _splitString = string_split_ext(_lineString, [" ", "	"]);
+                _previousTag = _tagType;
 				var _splitString = __tome_string_split_spaces_tabs(_lineString);
-				var _tagType = _splitString[0];
+				_tagType = _splitString[0];
 				var _tagContent = string_trim(string_replace(_lineString, _tagType, ""));
 				
 				if (_tagType == "@ignore"){
@@ -494,48 +351,75 @@ function __tome_parse_script(_filepath) {
 				if (!_ignoring){
 					switch(_tagType){
 						case "@title":
-							_markdown += "# " + _tagContent + "\n";		
-							_title = _tagContent;
-							_inTextBlock = false;
+							if !(_titleAlreadyExistsInCategory){
+                                _markdown += "# " + _tagContent + "\n";		
+    							_title = _tagContent;
+    							_inTextBlock = false;
+                            }   
 						break;
 					
 						case "@function":
 						case "@func":
-							_tableStarted = false;
+                            if (_inCodeBlock){
+                                 _markdown += "\n```\n"
+                            }
+                            
+                            if (_inTable || _tableStarted || _inCodeBlock || _inTextBlock || _inDesc){
+                                _markdown += "\n </div> <br>\n"
+                            }
+                            
+                            _inCodeBlock = false;
+                            _tableStarted = false;
 							_inTable = false;
 							_foundReturn = false;
-							_markdown += string("\n## `{0}`", _tagContent);		
+							_markdown += string("\n ## <span style=\"white-space: nowrap;\"> `{0}`", _tagContent);		
 							_inTextBlock = false;
 						
 							if (_inConstructor){
-								_markdown += " (*constructor*)";		
+								_markdown += " (*constructor*)</span><br>";		
 							}else{
-								_markdown += " → {rv}";	
+								_markdown += " → {rv}</span><br>";	
 							}
 						
 							_markdown += "\n";
 						
-							_inFunc = true;
+							_inDesc = false;
+                            _inFunc = true;
+                            _inMethod = false;
+                            _currentInFunc = _tagContent;
 						break;
 					
 						case "@method":
+                            if (_inCodeBlock){
+                                 _markdown += "\n```\n"
+                            }
+                            
+                            if (_inTable || _inCodeBlock || _inTextBlock || _inDesc){
+                                _markdown += "\n </div> <br>\n"
+                            }
+                            
 							if (_inConstructor){
-								_markdown += "\n**Methods**";	
+                                _markdown += "<div style=\"margin-left: 32px;\">\n"
+								_markdown += "\n ### Methods";	
+								_markdown += "\n ---";	
+								_markdown += "\n</div>\n";	
 								_inConstructor = false;
 							}
 						
-							_markdown += string("\n### `.{0}` → {rv}\n" , _tagContent);		
+							_markdown += string("\n ### &emsp; `.{0}` → {rv}\n" , _tagContent);	
+                            _inCodeBlock = false;	
 							_inTextBlock = false;
 							_tableStarted = false;
 							_inTable = false;
 							_inFunc = true;
+                            _inMethod = true;
 						break;
 						
 						case "@slug":
 						case "@insert":
-							for (var _slugIndex = 0; _slugIndex < array_length(__tomeController.slugs); _slugIndex++){
-								if (_tagContent == __tomeController.slugs[_slugIndex][0]){
-									_markdown +=  "\n" + __tomeController.slugs[_slugIndex][1] + "\n";
+							for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs); _slugIndex++){
+								if (_tagContent == global.__tomeData.slugs[_slugIndex][0]){
+									_markdown +=  "\n" + global.__tomeData.slugs[_slugIndex][1] + "\n";
 								}
 							}			
 						break;
@@ -547,17 +431,38 @@ function __tome_parse_script(_filepath) {
 				
 						case "@desc":
 						case "@description":
-							if (_inFunc){
-								_markdown += _tagContent + "\n";			
+                            var _previousTagIsCompatible = __previousTagIsCompatible(_tagType, _previousTag)
+							
+                            if (_inFunc && _previousTagIsCompatible){
+                                var _indentAmount = _inMethod ? 64 : 32;
+                                _markdown += string("\n<div style=\"margin-left: {0}px;\">\n\n", _indentAmount);
+								_markdown += _tagContent + "\n\n";		
 								_inDesc = true;
-							}
-						
-							_tableStarted = false;
-							_inTable = false;
+                                _tableStarted = false; 
+                                _inTable = false;
+							}else if (!_previousTagIsCompatible){
+                                // If a desc tag is found without a preceeding @function or @method tag, we are no longer in a valid function/method
+                                _inFunc = false;
+                                _inMethod = false;
+                            }
 						break; 
 					
 						case "@text":
-							_markdown += "\n" + _tagContent + "\n";			
+                            if (_inCodeBlock){
+                                _markdown += "\n```\n"
+                            }
+                            
+                             if (_inCodeBlock || _tableStarted){
+                                _markdown += "\n</div>\n";	    
+                            }
+                            
+                            var _indentAmount = _inMethod ? 64 : (_inFunc ? 32 : 0);
+                            
+                            if (!_inDesc){
+                                _markdown += string("<div style=\"margin-left: {0}px;\">\n", _indentAmount);
+                            }
+                    
+                            _markdown += "\n" + _tagContent + "\n";			
 							_inTextBlock = true;
 							_inCodeBlock = false;
 							_tableStarted = false;
@@ -566,10 +471,15 @@ function __tome_parse_script(_filepath) {
 							_tableStarted = false;
 						break;
 					
-					
 						case "@code":
 						case "@example":
-							_markdown += "```gml\n";			
+                            if (_inTextBlock || _inTable){
+                                _markdown += "\n</div>\n";	    
+                            }
+                            
+                            var _indentAmount = _inMethod ? 64 : (_inFunc ? 32 : 0);
+                            _markdown += string("<div style=\"margin-left: {0}px;\">\n", _indentAmount);
+							_markdown += "\n```gml\n";			
 							_inCodeBlock = true;
 							_tableStarted = false;
 							_inTextBlock = false;
@@ -580,16 +490,27 @@ function __tome_parse_script(_filepath) {
 						case "@parameter":
 						case "@arg":
 						case "@argument":
-							if (_inFunc){
+							if (_inFunc && __previousTagIsCompatible(_tagType, _previousTag)){
+                                if (_inDesc){
+                                    _markdown += "\n</div> \n\n";	
+                                }
+                                
+                                _inDesc = false;
+								_inTextBlock = false;
+                                
 								if (!_tableStarted){
+                                    var _indentAmount = _inMethod ? 64 : 32;
+                                    _markdown += string("<div style=\"margin-left: {0}px;\">\n", _indentAmount);
 									_markdown += "\n| Parameter | Datatype  | Purpose |\n";
 									_markdown += "|-----------|-----------|---------|\n";				
 									_tableStarted = true;
 									_inTable = true;
 								}
 						
-								_inDesc = false;
-								_inTextBlock = false;
+								if (array_length(_splitString) < 3){
+                                    __tomeTrace($"@param tags must include a dataType, name, and description \n    function/method with issue: {_currentInFunc}");
+                                    break;
+                                }
 						
 								var _paramDataTypeUntrimed = _splitString[1];
 								var _paramDataType = string_delete(_paramDataTypeUntrimed, 1, 1);
@@ -606,6 +527,10 @@ function __tome_parse_script(_filepath) {
 						case "@returns":
 						case "@return":
 							if (_inFunc){
+                                if (_inTable || _inMethod || _inDesc){
+                                    _markdown += "\n </div>\n"
+                                }
+                                
 								_foundReturn = true;
 								var _returnInfo = string_replace(_tagContent, _splitString[1], "");
 								_returnInfo = string_trim(_returnInfo);	
@@ -620,20 +545,31 @@ function __tome_parse_script(_filepath) {
 								_markdown = string_replace(_markdown, "{rv}", string(_returnStyle, _returnDataType));
 						
 								if (_returnInfo != ""){
+                                    var _indentAmount = _inMethod ? 64 : 32;
+                                    _markdown += string("<div style=\"margin-left: {0}px;\">\n", _indentAmount);
 									_markdown += string("\n**Returns:** {0}\n", _returnInfo);
+                                    _markdown += "</div>\n";
 								}
 							
-								_inTable = false;
+								_inDesc = false;
+                                _inTable = false;
 							}
 						break;
 					
 						case "@category":
 							_category = _tagContent;
 						break;
+                    
+                        //Unknown tag found
+                        default:
+                            if (_inDesc || _inTextBlock){
+                                _markdown += "\n</div>\n";   
+                            }
+                        break;
 					}
 				}
-			}else{
-				//If there is no tag but we are in a function, description, or text block, add the line to the markdown
+			}else if (string_pos("///", _rawUneditedLineString) != 0){
+				//Lines that start with "///" and there is no tag, but we are in a function, description, or text block, add the line to the markdown
 				if (_inTextBlock){
 					_markdown += _lineString;	
 				}
@@ -651,36 +587,151 @@ function __tome_parse_script(_filepath) {
 				}
 			}
 		}else{
+            //Line is completely blank
 			if (!_foundReturn){
 				_markdown = string_replace(_markdown, "{rv}", "`undefined`");		
 			}
 			
 			if (_inCodeBlock){
-				_markdown += "```\n";	
+				//_markdown += "```\n";	
 			}
 			
 			if (_inTable){
 				_markdown += "\n";	
 			}
-			
-			_inCodeBlock = false;
-			_inFunc = false;	
-			_inTextBlock = false;
-			_inDesc = false;
 		}
     }
 
     file_text_close(_file);
+    
     return {
 		markdown: _markdown,
 		category: _category,
 		title: _title
 	}
+    
+    #endregion
+    
+    /// @desc Subfunction to make sure that a given tag should be parsed based on what the previous tag was.
+    ///       For example, if a desc tag is found but the previous tag was not @method or @function, it is not valid
+    function __previousTagIsCompatible(_tag, _previousTag){
+        //sdbm($"Tag:{_tag}, PreviousTag:{_previousTag}");
+        // I know this is scuffed, oh well 
+        static compatibilityStruct =  {
+            "@desc": [ // desc/description is compatible with the following previous tags, else it's not parsed
+                "@method",
+                "@func",
+                "@function"
+            ],
+            "@description": [
+                "@method",
+                "@func",
+                "@function"
+            ],
+            "@param": [
+                "@param",
+                "@parameter",
+                "@arg",
+                "@argument",
+                "@method",
+                "@function",
+                "@func",
+                "@desc",
+                "description"
+            ],
+            "@parameter": [
+                "@param",
+                "@parameter",
+                "@arg",
+                "@argument",
+                "@method",
+                "@function",
+                "@func",
+                "@desc",
+                "description"
+            ],
+            "@arg": [
+                "@param",
+                "@parameter",
+                "@arg",
+                "@argument",
+                "@method",
+                "@function",
+                "@func",
+                "@desc",
+                "description"
+            ],
+            "@argument": [
+                "@param",
+                "@parameter",
+                "@arg",
+                "@argument",
+                "@method",
+                "@function",
+                "@func",
+                "@desc",
+                "description"
+            ]
+        }
+        
+        var _compatible = false;
+        var _compatibleTags = compatibilityStruct[$ _tag]
+        
+        // If current Tag is found
+        if (_compatibleTags != undefined){
+            _compatible = array_contains(_compatibleTags, _previousTag);
+        }
+        
+        return _compatible;
+    }
+    
+    /// @desc Gets the title and category 
+    function __getFileTitleAndCategory(_filePath){
+        var _titleFound = false;
+        var _categoryFound = false;
+        var _title = "";
+        var _category = "";
+        
+        var _file = file_text_open_read(_filePath);
+        
+        while (!file_text_eof(_file)){
+    		// This is a stupid way of getting the title in the format firstWord-secondWord-thirdWord
+            var _lineString = file_text_readln(_file);
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineString, " ", "-"); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "    ", ""); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\n", ""); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\r", ""); 
+            
+            if (string_pos("///-@title-", _lineStringWithSpacesAndTabsRemoved) != 0){
+                _title = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@title-", ""); // Remove tag
+                _titleFound = true;
+                __tomeTrace($"Title: {_title} found", true, 2, false);
+            }
+            
+            if (string_pos("///-@category-", _lineStringWithSpacesAndTabsRemoved) != 0){
+                _category = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@category-", ""); // Remove tag
+                _category = string_replace_all(_category, "-", " "); // Replace "-"s with " " because only the title cares about the "-"s 
+                _categoryFound = true;
+                __tomeTrace($"Category: {_category} found", true, 2, false);
+            }
+            
+            if (_titleFound && _categoryFound){
+                return {
+                    title: _title,
+                    category: _category
+                }
+            }
+        }
+        
+        file_text_close(_file);
+        
+        return {
+            title: _title,
+            category: _category
+        }
+    }
 }
 
-#endregion
-
-#region __tome_parse_markdown(_filePath)
 /// @desc Parses a markdown file and returns a struct containing the markdown text, title, and category. Unlike the script parser, this function only parses the tags @title and @category, all other text is just added to the markdown.
 /// @param {string} _filePath The path to the file
 /// @returns {struct} Struct containing the markdown text, title, and category
@@ -734,9 +785,9 @@ function __tome_parse_markdown(_filePath){
 					
 					case "@slug":
 					case "@insert":
-						for (var _slugIndex = 0; _slugIndex < array_length(__tomeController.slugs); _slugIndex++){
-							if (_tagContent == __tomeController.slugs[_slugIndex][0]){
-								_markdown +=  "\n" + __tomeController.slugs[_slugIndex][1] + "\n";
+						for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs); _slugIndex++){
+							if (_tagContent == global.__tomeData.slugs[_slugIndex][0]){
+								_markdown +=  "\n" + global.__tomeData.slugs[_slugIndex][1] + "\n";
 							}
 						}			
 					break;
@@ -761,13 +812,10 @@ function __tome_parse_markdown(_filePath){
 	}
 }
 
-#endregion
-
-#region __tome_parse_markdown_slugs(_filePath)
 /// @desc Parses a markdown file and returns a struct containing the markdown text, title, and category. Unlike the script parser, this function only parses the tags @title and @category, all other text is just added to the markdown.
 /// @param {string} _filePath The path to the file
 /// @returns {undefined}
-function __tome_parse_markdown_slugs(_filePath){
+function __tome_parse_markdown_slug(_filePath){
 	var _file = file_text_open_read(_filePath);
 	var _inSlug = false;
 	var _markdown = "";
@@ -793,7 +841,7 @@ function __tome_parse_markdown_slugs(_filePath){
 						case "@insert":
 							if (_inSlug){
 								if (_markdown != ""){
-									array_push(__tomeController.slugs, [_slugName, _markdown]);	
+									array_push(global.__tomeData.slugs, [_slugName, _markdown]);	
 								}
 							}
 						
@@ -804,8 +852,8 @@ function __tome_parse_markdown_slugs(_filePath){
 						
 						
 							var _slugIndex = 0;
-							repeat(array_length(__tomeController.slugs)){
-								if (_slugName == __tomeController.slugs[_slugIndex][0]){
+							repeat(array_length(global.__tomeData.slugs)){
+								if (_slugName == global.__tomeData.slugs[_slugIndex][0]){
 									_inSlug = false;
 									break;
 								}
@@ -831,17 +879,12 @@ function __tome_parse_markdown_slugs(_filePath){
 		
 		if (_inSlug){
 			if (_markdown != ""){
-				array_push(__tomeController.slugs, [_slugName, _markdown]);	
+				array_push(global.__tomeData.slugs, [_slugName, _markdown]);	
 			}
 		}
 	}
 }
 
-#endregion
-
-#region __tome_file_project_get_directory()
-
-/// @func __tome_file_project_get_directory()
 /// @desc If the game is ran from the IDE, this will return the file path to the game's project file with the ending "/"
 function __tome_file_project_get_directory(){
 	var _originalPath = filename_dir(GM_project_filename) + "\\";
@@ -850,22 +893,15 @@ function __tome_file_project_get_directory(){
 	return string_trim(_fixedPath);
 }
 
+/// @desc Replaces instances of "|" with "*or*"(colored red
 function __tome_parse_data_type(_dataTypeString){
 	return string_replace_all(_dataTypeString, "|", " <span style=\"color: red;\"> *or* </span> ");	
 }
 
-#endregion
-
-#region __tome_file_get_final_doc_path()
-
 /// @desc Gets the actual filepath within the repo where the .md files will be pushed
 function  __tome_file_get_final_doc_path() { 
-	return TOME_GITHUB_REPO_DOC_DIRECTORY + global.__tomeLatestDocVersion + "/";
+	return global.__tomeData.repoFilePath + global.__tomeData.latestDocsVersion + "/";
 }
-
-#endregion
-
-#region __tome_file_get_extension(_filePath)
 
 /// @desc Returns the file extension of the given file path
 /// @param {string} _filePath The path to the file
@@ -874,10 +910,6 @@ function __tome_file_get_extension(_filePath){
 	var _splitPath = string_split(_filePath, ".");
 	return _splitPath[array_length(_splitPath) - 1];
 }
-
-#endregion
-
-#region __tome_file_text_read_all(_filePath)
 
 /// @desc Loads a text file and reads its entire contents as a string
 /// @param {string} filePath The path to the text file to read
@@ -888,20 +920,12 @@ function __tome_file_text_read_all(_filePath){
 	return _fileContents;
 }
 
-#endregion
-
-#region __tome_file_bin_read_all(_filePath)
-
 /// @desc Loads a binary file
 /// @param {string} filePath The path to the binary file to read
 function __tome_file_bin_read_all(_filePath){
 	var fileBuffer = buffer_load(_filePath);
 	return fileBuffer;
 }
-
-#endregion
-
-#region __tome_file_update_config(_propertyName, _propertyValue)
 
 /// @desc Updates the config file with the given property name and value
 /// @param {string} propertyName The name of the property to update
@@ -951,10 +975,6 @@ function __tome_file_update_config(_propertyName, _propertyValue){
 	buffer_delete(_fileBuffer);
 }
 
-#endregion
-
-#region __tome_string_trim_starting_whitespace(_string, _maxNumberOfWhitespace)
-
 /// @desc Trims the starting whitespace of a string leaving a given amount of it 
 /// @param {string} string The string to trim
 /// @param {real} maxNumberOfWhitespace The maximum number of whitespace characters to leave
@@ -979,36 +999,6 @@ function __tome_string_trim_starting_whitespace(_string, _maxNumberOfWhitespace)
 	
 	return string_copy(_string, clamp(_stringInfoStruct.positionOfFirstNonWhitespaceCharacter - _maxNumberOfWhitespace, 1, string_length(_string)), string_length(_string));
 }
-
-#endregion
-
-#region __tome_generate_file_sha(_content)
-
-/// @desc generates the file's on disk sha (in git format) to be used to compaire to remote sha.
-/// @param {string} content The file's on disk content.
-/// @returns {real} sha the sha of the content
-function __tome_generate_file_sha(_content){
-	//Tome only uses blob objects, If this changes in the future, this function will need to be adjusted.
-	
-	var _byteLength = string_byte_length(_content);
-	var _header = "blob " + string(_byteLength);
-
-	var _shaBuffer = buffer_create(4096, buffer_grow, 1);
-	
-	buffer_seek(_shaBuffer, buffer_seek_start, 0);
-	
-	buffer_write(_shaBuffer, buffer_string, _header);
-	buffer_write(_shaBuffer, buffer_text, _content);
-	buffer_resize(_shaBuffer, buffer_tell(_shaBuffer));
-	
-	var _sha = buffer_sha1(_shaBuffer, 0, buffer_get_size(_shaBuffer));
-	buffer_delete(_shaBuffer);
-	
-	return _sha
-}
-#endregion
-
-#region __tome_string_split_spaces_tabs(_string)
 
 /// @desc Splits up words separated by any number of spaces or tabs
 /// @param {string} string The string to split
@@ -1040,4 +1030,46 @@ function __tome_string_split_spaces_tabs(_string) {
     return _words;
 }
 
-#endregion
+/// @Desc Outputs a message to the console prefixed with "Tome:"
+/// @param {string} text The message to display in the console
+/// @param {string} [verboseOnly] Whether the message should only be displayed if `TOME_VERBOSE` is enabled or not
+function __tomeTrace(_text, _verboseOnly = false, _indention = 0, _includePrefix = true){
+    var _indentionString = "";
+    var _tomePrefix = _includePrefix ? "Tome: " : "";
+    
+    repeat(_indention){
+        _indentionString += "   ";
+    }
+    
+    var _finalMessageString = _indentionString + $"{_tomePrefix}{_text}";
+    
+	if (_verboseOnly && TOME_VERBOSE){
+		show_debug_message(_finalMessageString);	
+	}
+	
+	if (!_verboseOnly){
+		show_debug_message(_finalMessageString);			
+	}
+}
+
+/// @desc Initializes the global struct that holds Tome's data(if it doesn't already exist)
+function __tome_setup_data(){
+    if (!variable_global_exists("__tomeData")){
+        global.__tomeData = {
+            repoFilePath: "",
+            categories: {
+                none: []
+            },
+            slugs: [],
+            slugNoteFilePaths: [],
+            filesToBeParsed: [],
+            homepageContent: "Homepage",
+            latestDocsVersion: "Latest-Version",
+            navbarItems: [],
+            additionalSidebarItems: [],
+            docGenerationFailed: false
+        };
+    }
+}
+
+
