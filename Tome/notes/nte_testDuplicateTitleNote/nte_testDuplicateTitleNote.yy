@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"nte_testDuplicateTitleNote",
+  "name":"nte_testDuplicateTitleNote",
+  "parent":{
+    "name":"_Testing",
+    "path":"folders/_Testing.yy",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

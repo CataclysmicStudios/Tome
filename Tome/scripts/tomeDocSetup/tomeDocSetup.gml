@@ -12,11 +12,12 @@ tome_set_site_theme_color("#11DD11");
 tome_set_homepage_from_note("nte_homepage");
 tome_add_script("__tome");
 tome_add_script("scr_testDuplicateTitle");
-tome_add_note("nte_settingUp");
-tome_add_note("nte_configuration");
-tome_add_note("nte_exampleSite");
-tome_add_note("nte_formattingScripts", "nte_slugs");
-tome_add_note("nte_advancedUse");
+tome_add_note("nte_testDuplicateTitleNote");
+//tome_add_note("nte_settingUp");
+//tome_add_note("nte_configuration");
+//tome_add_note("nte_exampleSite");
+//tome_add_note("nte_formattingScripts", "nte_slugs");
+//tome_add_note("nte_advancedUse");
 
 tome_add_to_sidebar("Google", "Https://www.google.com", "Links");
 

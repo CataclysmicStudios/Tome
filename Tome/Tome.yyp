@@ -11,6 +11,7 @@
   "defaultScriptType":1,
   "Folders":[
     {"$GMFolder":"","%Name":"Docs","folderPath":"folders/Docs.yy","name":"Docs","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"_Testing","folderPath":"folders/_Testing.yy","name":"_Testing","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Tome","folderPath":"folders/Tome.yy","name":"Tome","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"_system","folderPath":"folders/Tome/_system.yy","name":"_system","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
@@ -41,6 +42,7 @@
     {"id":{"name":"nte_homepage","path":"notes/nte_homepage/nte_homepage.yy",},},
     {"id":{"name":"nte_settingUp","path":"notes/nte_settingUp/nte_settingUp.yy",},},
     {"id":{"name":"nte_slugs","path":"notes/nte_slugs/nte_slugs.yy",},},
+    {"id":{"name":"nte_testDuplicateTitleNote","path":"notes/nte_testDuplicateTitleNote/nte_testDuplicateTitleNote.yy",},},
     {"id":{"name":"rm_test","path":"rooms/rm_test/rm_test.yy",},},
     {"id":{"name":"__tome","path":"scripts/__tome/__tome.yy",},},
     {"id":{"name":"__tomeFuncQueue","path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},},

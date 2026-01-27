@@ -1,5 +1,7 @@
 {
-  "FolderOrderSettings":[],
+  "FolderOrderSettings":[
+    {"name":"_Testing","order":3,"path":"folders/_Testing.yy",},
+  ],
   "ResourceOrderSettings":[
     {"name":"nte_configuration","order":2,"path":"notes/nte_configuration/nte_configuration.yy",},
     {"name":"nte_exampleSite","order":4,"path":"notes/nte_exampleSite/nte_exampleSite.yy",},

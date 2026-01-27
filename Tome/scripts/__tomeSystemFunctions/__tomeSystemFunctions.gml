@@ -27,6 +27,8 @@ function __tome_generate_docs(){
 	__generateDocFiles();
     
     __addAdditionalSidebarItemsToSidebarData();
+    
+    __tomeTrace("Generating sidebar and navbar", true, 2, false);
 	
 	__generateSidebar();
     
@@ -245,7 +247,7 @@ function __tome_parse_script(_filepath) {
 
     // Here we are looking specifically for the @title and @category tags
     // If a file with the same category and tag already exist, we want to load that file and append this new script's content to it
-    var _titleAndCategoryStruct = __getFileTitleAndCategory(_filepath);
+    var _titleAndCategoryStruct = __tome_get_file_title_and_category(_filepath);
     
     var _title = _titleAndCategoryStruct.title;
     var _category = _titleAndCategoryStruct.category;
@@ -267,7 +269,7 @@ function __tome_parse_script(_filepath) {
         _category = "none";
     }
     
-    // Now lets figure out if there is a page with the same title and category that has already been parsed
+    /// Now lets figure out if there is a page with the same title and category that has already been parsed
     var _titleAlreadyExistsInCategory = false;
     var _titleFilePath = "";
     var _categoryTitles = global.__tomeData.categories[$ _category];
@@ -311,6 +313,15 @@ function __tome_parse_script(_filepath) {
     var _tagType = "";
     
     var _file = file_text_open_read(_filepath);
+    
+    if (_file == -1) {
+		__tomeTrace("Failed to open file: " + _filePath, false, 2, false);
+		return {
+			markdown: _markdown,
+			category: _category,
+			title: _title
+		};
+	}
 
     //Loop through each line of the text file
 	while (!file_text_eof(_file)) {
@@ -686,67 +697,70 @@ function __tome_parse_script(_filepath) {
         
         return _compatible;
     }
-    
-    /// @desc Gets the title and category 
-    function __getFileTitleAndCategory(_filePath){
-        var _titleFound = false;
-        var _categoryFound = false;
-        var _title = "";
-        var _category = "";
-        
-        var _file = file_text_open_read(_filePath);
-        
-        while (!file_text_eof(_file)){
-    		// This is a stupid way of getting the title in the format firstWord-secondWord-thirdWord
-            var _lineString = file_text_readln(_file);
-            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineString, " ", "-"); 
-            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "    ", ""); 
-            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\n", ""); 
-            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\r", ""); 
-            
-            if (string_pos("///-@title-", _lineStringWithSpacesAndTabsRemoved) != 0){
-                _title = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@title-", ""); // Remove tag
-                _titleFound = true;
-                __tomeTrace($"Title: {_title} found", true, 2, false);
-            }
-            
-            if (string_pos("///-@category-", _lineStringWithSpacesAndTabsRemoved) != 0){
-                _category = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@category-", ""); // Remove tag
-                _category = string_replace_all(_category, "-", " "); // Replace "-"s with " " because only the title cares about the "-"s 
-                _categoryFound = true;
-                __tomeTrace($"Category: {_category} found", true, 2, false);
-            }
-            
-            if (_titleFound && _categoryFound){
-                return {
-                    title: _title,
-                    category: _category
-                }
-            }
-        }
-        
-        file_text_close(_file);
-        
-        return {
-            title: _title,
-            category: _category
-        }
-    }
 }
 
 /// @desc Parses a markdown file and returns a struct containing the markdown text, title, and category. Unlike the script parser, this function only parses the tags @title and @category, all other text is just added to the markdown.
 /// @param {string} _filePath The path to the file
 /// @returns {struct} Struct containing the markdown text, title, and category
-function __tome_parse_markdown(_filePath){
-	var _file = file_text_open_read(_filePath);
+function __tome_parse_markdown(_filepath, _homepage = false){
 	var _markdown = "";
-	var _category = "";
-	var _title = "";
-	var _titleFound = false;
-	var _categoryFound = false;
+    var _title = "";
+    var _category = "";
+    
+    if (!_homepage){
+        // Here we are looking specifically for the @title and @category tags
+        // If a file with the same category and tag already exist, we want to load that file and append this new script's content to it
+        var _titleAndCategoryStruct = __tome_get_file_title_and_category(_filepath);
+        
+    	_title = _titleAndCategoryStruct.title;
+        _category = _titleAndCategoryStruct.category;
+        
+    	var _titleFound = (_title != "");
+        var _categoryFound = (_category != "");
+        
+        // Stop trying to parse the script right away if a title for the page cannot be found
+        if (!_titleFound){
+            __tomeTrace($"No @title tag can be found for: {_filepath}", false, 2, false);
+            return {
+    			markdown: _markdown,
+    			category: _category,
+    			title: _title
+    		};
+        }
+        
+        if (!_categoryFound){
+            _category = "none";
+        }
+        
+        /// Now lets figure out if there is a page with the same title and category that has already been parsed
+        var _titleAlreadyExistsInCategory = false;
+        var _titleFilePath = "";
+        var _categoryTitles = global.__tomeData.categories[$ _category];
+        var _categoryAlreadyExists = _categoryTitles != undefined ? true : false;
+        var _titleWithNoDashes = string_replace_all(_title, "-", " ");
+        
+        if (_categoryAlreadyExists){
+            if (array_get_index(_categoryTitles, _titleWithNoDashes) != -1){
+                _titleAlreadyExistsInCategory = true;
+                var _categoryWithDashesInsteadOfSpaces = string_replace_all(_category, " ", "-");
+                _titleFilePath = $"{__tome_file_get_final_doc_path()}{_categoryWithDashesInsteadOfSpaces}-{_title}.md";
+                __tomeTrace($"The title: {_title} is already present in the category: {_category}, content for this script will be appended onto the existing .md file", true, 3, false); 
+            }           
+        }
+        
+        if (_titleAlreadyExistsInCategory){
+            _title = _titleWithNoDashes;
+            
+            if (file_exists(_titleFilePath)){
+                _markdown = __tome_file_text_read_all(_titleFilePath) + "\n </div> <br>\n"; // Add the existing content to the markdown string
+            }
+        }
+    }
 	
-	if (_file == -1) {
-		__tomeTrace("Failed to open file: " + _filePath);
+    var _file = file_text_open_read(_filepath);
+    
+    if (_file == -1) {
+		__tomeTrace("Failed to open file: " + _filepath);
 		return {
 			markdown: _markdown,
 			category: _category,
@@ -768,12 +782,10 @@ function __tome_parse_markdown(_filePath){
 			
 				switch(_tagType){
 					case "@title":
-						if (!_titleFound){
+                        if !(_titleAlreadyExistsInCategory){
 							_markdown += "# " + _tagContent + "\n";		
 							_title = _tagContent;
 							_titleFound = true;
-						}else{
-							_markdown += _lineStringUntrimmed;		
 						}
 					break;
 					
@@ -781,7 +793,7 @@ function __tome_parse_markdown(_filePath){
 						if (!_categoryFound){
 							_category = _tagContent;
 						}else{
-							_markdown += _lineStringUntrimmed;	
+							//_markdown += _lineStringUntrimmed;	
 						}
 					break;
 					
@@ -893,6 +905,52 @@ function __tome_file_project_get_directory(){
 	var _fixedPath = string_replace_all(_originalPath, "\\", "/");
 	
 	return string_trim(_fixedPath);
+}
+
+/// @desc Gets the title and category 
+function __tome_get_file_title_and_category(_filePath){
+    var _titleFound = false;
+    var _categoryFound = false;
+    var _title = "";
+    var _category = "";
+    
+    var _file = file_text_open_read(_filePath);
+    
+    while (!file_text_eof(_file)){
+        // This is a stupid way of getting the title in the format firstWord-secondWord-thirdWord
+        var _lineString = file_text_readln(_file);
+        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineString, " ", "-"); 
+        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "    ", ""); 
+        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\n", ""); 
+        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\r", ""); 
+        
+        if (string_pos("///-@title-", _lineStringWithSpacesAndTabsRemoved) != 0){
+            _title = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@title-", ""); // Remove tag
+            _titleFound = true;
+            __tomeTrace($"Title: {_title} found", true, 2, false);
+        }
+        
+        if (string_pos("///-@category-", _lineStringWithSpacesAndTabsRemoved) != 0){
+            _category = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@category-", ""); // Remove tag
+            _category = string_replace_all(_category, "-", " "); // Replace "-"s with " " because only the title cares about the "-"s 
+            _categoryFound = true;
+            __tomeTrace($"Category: {_category} found", true, 2, false);
+        }
+        
+        if (_titleFound && _categoryFound){
+            return {
+                title: _title,
+                category: _category
+            }
+        }
+    }
+    
+    file_text_close(_file);
+    
+    return {
+        title: _title,
+        category: _category
+    }
 }
 
 /// @desc Replaces instances of "|" with "*or*"(colored red
@@ -1069,7 +1127,8 @@ function __tome_setup_data(){
             latestDocsVersion: "Latest-Version",
             navbarItems: [],
             additionalSidebarItems: [],
-            docGenerationFailed: false
+            docGenerationFailed: false,
+            setupWarnings: []
         };
     }
 }

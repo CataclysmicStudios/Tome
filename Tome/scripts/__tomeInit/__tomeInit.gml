@@ -4,6 +4,21 @@ if (__TOME_CAN_RUN){
 
 	function __tome_init(){
         show_debug_message($"Tome Enabled, Version: {global.__tomeData.latestDocsVersion}");
+        
+        var _warningsFound = array_length(global.__tomeData.setupWarnings) > 0;
+        
+        if (_warningsFound){
+            show_debug_message("   Warnings:");
+            
+            var _i = 0;
+            
+            repeat(array_length(global.__tomeData.setupWarnings)){
+                var _currentWarning = global.__tomeData.setupWarnings[_i];
+                show_debug_message($"        {_currentWarning}");
+                _i++;
+            }
+        }
+        
         show_debug_message("   Generating docs...");
         
         __tome_generate_docs();

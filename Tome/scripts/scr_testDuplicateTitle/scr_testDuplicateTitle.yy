@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_testDuplicateTitle",
   "parent":{
-    "name":"Tome",
-    "path":"Tome.yyp",
+    "name":"_Testing",
+    "path":"folders/_Testing.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

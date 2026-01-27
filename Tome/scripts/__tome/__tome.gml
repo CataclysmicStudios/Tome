@@ -11,7 +11,7 @@ function tome_add_script(_scriptName){
 	var _filePath = $"{__tome_file_project_get_directory()}scripts/{_scriptName}/{_scriptName}.gml";
 	
 	if (!file_exists(_filePath)){
-		__tomeTrace($"tome_add_script: The given script doesn't seem to exist: {_scriptName}");
+		array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given script doesn't seem to exist: {_scriptName}");
 		exit;
 	}
 	
@@ -38,7 +38,7 @@ function tome_add_note(_noteName){
     var _filePath = $"{__tome_file_project_get_directory()}notes/{_noteName}/{_noteName}.txt";
 	
 	if (!file_exists(_filePath)){
-        __tomeTrace($"tome_add_note: The given note doesn't seem to exist: {_noteName}");
+        array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given note doesn't seem to exist: {_noteName}\n");
 		exit;
 	}
 	
@@ -60,7 +60,7 @@ function tome_add_note(_noteName){
 function tome_add_file(_filePath){
     __tome_setup_data()
 	if (!file_exists(_filePath)){
-		__tomeTrace($"tome_add_file: The given file doesn't seem to exist: {_filePath}");
+		array_push(global.__tomeData.setupWarnings, $"tome_add_file: The given file doesn't seem to exist: {_filePath}");
 		exit;
 	}
 	
@@ -72,12 +72,13 @@ function tome_add_file(_filePath){
 /// @param {string} filePath The file to use as the homepage
 function tome_set_homepage_from_file(_filePath){
     __tome_setup_data()	
-	if (!file_exists(_filePath)){
-		__tomeTrace($"tome_set_homepage_from_file: The given file doesn't seem to exist: {_filePath}");
+	
+    if (!file_exists(_filePath)){
+		array_push(global.__tomeData.setupWarnings, $"tome_set_homepage_from_file: The given file doesn't seem to exist: {_filePath}");
 		exit;
 	}
 	
-	var _homePageParseStruct = __tome_parse_markdown(_filePath);
+	var _homePageParseStruct = __tome_parse_markdown(_filePath, true);
 	global.__tomeData.homepageContent = _homePageParseStruct.markdown;
 }
 
@@ -89,11 +90,11 @@ function tome_set_homepage_from_note(_noteName){
     var _filePath = $"{__tome_file_project_get_directory()}notes/{_noteName}/{_noteName}.txt";
 	
 	if (!file_exists(_filePath)){
-		__tomeTrace($"tome_set_homepage_from_note: The given note doesn't seem to exist: {_filePath}");
+		array_push(global.__tomeData.setupWarnings, $"tome_set_homepage_from_note: The given note doesn't seem to exist: {_filePath}");
 		exit;
 	}
 	
-	var _homePageParseStruct = __tome_parse_markdown(_filePath);
+	var _homePageParseStruct = __tome_parse_markdown(_filePath, true);
 	global.__tomeData.homepageContent = _homePageParseStruct.markdown;
 }
 

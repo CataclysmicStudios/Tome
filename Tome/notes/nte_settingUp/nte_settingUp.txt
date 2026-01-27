@@ -9,7 +9,7 @@
 3) In your project, navigate to the script `tomeConfig` and set the macro `TOME_LOCAL_REPO_PATH` to the path of your locally cloned Github repo.
 
 ## Setting up GitHub Pages
-Next we'll configure Github pages to automatically deploy your site. Unless you are using a custom domain, your site's domain will be `username.github.io/repoName`.
+Next we'll configure Github pages to deploy your site. Unless you are using a custom domain, your site's domain will be `username.github.io/repoName`.
 
 1. on [GitHub.com](https://www.github.com), find your repo and click **settings** 
 
