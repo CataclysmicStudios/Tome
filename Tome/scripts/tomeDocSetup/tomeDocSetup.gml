@@ -18,6 +18,8 @@ tome_add_note("nte_exampleSite");
 tome_add_note("nte_formattingScripts", "nte_slugs");
 tome_add_note("nte_advancedUse");
 
+tome_add_to_sidebar("Google", "Https://www.google.com", "Links");
+
 tome_add_navbar_link("Report a bug", "https://github.com/CataclysmicStudios/Tome/issues");
 tome_add_navbar_link("Releases", "https://github.com/CataclysmicStudios/Tome/releases");
 

@@ -22,7 +22,7 @@ function __tome_generate_docs(){
 
 	// Update homepage 
     __tomeTrace("Updating homepage", true, 2, false);
-    __updateFile($"{__tome_file_get_final_doc_path()}.README.md", global.__tomeData.homepageContent);
+    __updateFile($"{__tome_file_get_final_doc_path()}README.md", global.__tomeData.homepageContent);
 
 	__generateDocFiles();
     
@@ -185,7 +185,7 @@ function __tome_generate_docs(){
     		var _currentCategory = _categoriesNames[_a];
     		
     		if (_currentCategory != "none"){
-    			_sideBarMarkdownString += string("**{0}**\n\n", _currentCategory);			
+    			_sideBarMarkdownString += $"**{_currentCategory}**\n\n";			
     		}
     		
     		var _b = 0; 
@@ -197,15 +197,15 @@ function __tome_generate_docs(){
     			if (is_struct(_currentCategoryArray[_b])){
     				var _currentPageTitle = _currentCategoryArray[_b].title;
     				var _currentPageLink = _currentCategoryArray[_b].link;
-    				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageLink);
+    				_sideBarMarkdownString += $"-    [{_currentPageTitle}]({_currentPageLink})\n";
     			
     				if (_b == (_categoryArrayLength - 1)){
     					_sideBarMarkdownString += "\n---\n\n";	
     				}
     			}else{
     				var _currentPageTitle = _currentCategoryArray[_b];
-    				var _currentPageFileName = string_replace_all( _currentPageTitle, " ", "-");
-    				_sideBarMarkdownString += string("-    [{0}]({1})\n", _currentPageTitle, _currentPageFileName);
+    				var _currentPageFileName = string_replace_all(_currentCategory + " " + _currentPageTitle, " ", "-");
+    				_sideBarMarkdownString += $"-    [{_currentPageTitle}]({_currentPageFileName})\n";
     			
     				if (_b == (_categoryArrayLength - 1)){
     					_sideBarMarkdownString += "\n---\n\n";	
@@ -603,6 +603,8 @@ function __tome_parse_script(_filepath) {
     }
 
     file_text_close(_file);
+    
+    _markdown += "\n </div> <br>\n";
     
     return {
 		markdown: _markdown,
