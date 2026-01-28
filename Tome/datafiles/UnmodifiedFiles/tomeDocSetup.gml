@@ -1,17 +1,6 @@
-
-#region System(don't mess with these)
-global.__tomeSlugArray = [];
-global.__tomeFileArray = [];
-global.__tomeAdditionalSidebarItemsArray = [];
-global.__tomeHomepage = "Homepage";
-global.__tomeLatestDocVersion = "Current-Version";
-global.__tomeNavbarItemsArray = [];
-
-#endregion
-
-/*
-	Add all the files you wish to be parsed here!
-	                                            */			
+//***************************************************
+//	Add all the files you wish to be parsed here!  **
+//***************************************************	                                            			
 												
 
 tome_set_site_description("Documentation for Your Project");
