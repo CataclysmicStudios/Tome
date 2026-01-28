@@ -1,6 +1,8 @@
 //Non-userfacing functions/macros used to make the system work
 #macro __TOME_CAN_RUN (TOME_ENABLED && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
 
+#macro TOME_VERSION "01-22-2026" 
+
 /// @desc Generates the documentation website
 /// @desc Parses all files added via `tome_add_` functions and generates your documenation site.  
 ///              Then it adds them to the repo path specified with the macro `TOME_REPO_PATH`

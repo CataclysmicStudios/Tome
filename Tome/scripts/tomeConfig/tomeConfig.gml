@@ -7,5 +7,4 @@
 // Show extended debug information in the console when generating your docs
 #macro TOME_VERBOSE true
 
-#macro TOME_VERSION "01-22-2026" 
 

@@ -3,7 +3,7 @@ if (__TOME_CAN_RUN){
 	global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, __tome_init, [], 1);
 
 	function __tome_init(){
-        show_debug_message($"Tome Enabled, Version: {global.__tomeData.latestDocsVersion}");
+        show_debug_message($"Tome Enabled, Version: {TOME_VERSION}");
         
         var _warningsFound = array_length(global.__tomeData.setupWarnings) > 0;
         
