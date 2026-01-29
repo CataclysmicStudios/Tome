@@ -1,0 +1,17 @@
+{
+  "FolderOrderSettings":[],
+  "ResourceOrderSettings":[
+    {"name":"nte_configuration","order":2,"path":"notes/nte_configuration/nte_configuration.yy",},
+    {"name":"nte_exampleSite","order":4,"path":"notes/nte_exampleSite/nte_exampleSite.yy",},
+    {"name":"nte_formattingScripts","order":5,"path":"notes/nte_formattingScripts/nte_formattingScripts.yy",},
+    {"name":"nte_homepage","order":1,"path":"notes/nte_homepage/nte_homepage.yy",},
+    {"name":"nte_settingUp","order":3,"path":"notes/nte_settingUp/nte_settingUp.yy",},
+    {"name":"nte_slugs","order":7,"path":"notes/nte_slugs/nte_slugs.yy",},
+    {"name":"__tome","order":5,"path":"scripts/__tome/__tome.yy",},
+    {"name":"__tomeFuncQueue","order":7,"path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},
+    {"name":"__tomeInit","order":8,"path":"scripts/__tomeInit/__tomeInit.yy",},
+    {"name":"__tomeSystemFunctions","order":9,"path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},
+    {"name":"tomeConfig","order":4,"path":"scripts/tomeConfig/tomeConfig.yy",},
+    {"name":"tomeDocSetup","order":5,"path":"scripts/tomeDocSetup/tomeDocSetup.yy",},
+  ],
+}

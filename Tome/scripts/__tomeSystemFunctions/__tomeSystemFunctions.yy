@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "__tomeSystemFunctions",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "_system",
-    "path": "folders/Tome/_system.yy",
+  "$GMScript":"v1",
+  "%Name":"__tomeSystemFunctions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__tomeSystemFunctions",
+  "parent":{
+    "name":"_system",
+    "path":"folders/Tome/_system.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

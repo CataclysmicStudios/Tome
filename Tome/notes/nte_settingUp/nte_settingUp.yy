@@ -1,9 +1,11 @@
 {
-  "resourceType": "GMNotes",
-  "resourceVersion": "1.1",
-  "name": "nte_settingUp",
-  "parent": {
-    "name": "Docs",
-    "path": "folders/Docs.yy",
+  "$GMNotes":"v1",
+  "%Name":"nte_settingUp",
+  "name":"nte_settingUp",
+  "parent":{
+    "name":"Docs",
+    "path":"folders/Docs.yy",
   },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
 }

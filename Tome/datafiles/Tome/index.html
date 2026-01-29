@@ -201,6 +201,53 @@
 									version.isDefault
 								);
 							});
+
+							// --- START RESIZABLE SIDEBAR CODE ---
+							var resizer = document.createElement('div');
+							
+							// Style the drag handle (invisible 5px strip on the edge)
+							resizer.style.cssText = `
+								width: 10px;
+								background: transparent;
+								cursor: col-resize;
+								position: fixed;
+								top: 0;
+								bottom: 0;
+								left: var(--sidebar-width); 
+								z-index: 99999;
+								margin-left: -5px; /* Centers the handle on the edge */
+							`;
+							
+							document.body.appendChild(resizer);
+
+							// Logic to handle the dragging
+							var isResizing = false;
+
+							resizer.addEventListener('mousedown', function(e) {
+								isResizing = true;
+								e.preventDefault(); // Prevents text selection while dragging
+								document.body.style.cursor = 'col-resize'; // Force cursor everywhere
+							});
+
+							document.addEventListener('mousemove', function(e) {
+								if (!isResizing) return;
+								
+								// Set limits (min 200px, max 800px)
+								var newWidth = e.clientX;
+								if (newWidth < 200) newWidth = 200;
+								if (newWidth > 800) newWidth = 800;
+
+								// Update the Themeable CSS variable
+								document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
+							});
+
+							document.addEventListener('mouseup', function() {
+								if (isResizing) {
+									isResizing = false;
+									document.body.style.cursor = 'default';
+								}
+							});
+							// --- END RESIZABLE SIDEBAR CODE ---
 						});
 					},
 				],
@@ -282,7 +329,7 @@
 				--heading-h6-font-weight: var(--heading-font-weight);
 
 				/* Content */
-				--content-max-width: 80em;
+				--content-max-width: 90em;
 				--link-color--hover: var(--theme-color);
 				--heading-h1-color: var(--theme-color);
 				--heading-h2-color: var(--theme-color);
@@ -342,26 +389,6 @@
 				color: #293338;
 			}
 			
-			/* wrap function headers via gnysek */
-			.markdown-section h2 a code:not([class*="lang-"]):not([class*="language-"]) {
-				display: block;
-				position: relative;
-				white-space: normal;
-				padding-left: 2ch;
-				text-indent: -1ch;
-				overflow: hidden;
-			}
-			
-			/* line break indicators */
-			.markdown-section h2 a code:after {    
-				content: "\A ↳ \A ↳ \A ↳ \A ↳ \A ↳ \A ↳";
-				position: absolute;
-				left: 14px;
-				top: 0;
-				opacity: 0.5;
-				white-space: break-spaces;
-			}
-			
 			/* wrap function index */
 			@media (max-width: 1440px) {
 				[data-page*="/Function-Index."] .markdown-section li a { vertical-align:top; }
@@ -384,6 +411,14 @@
 					top: 0;
 					opacity: 0.5;
 				}
+			}
+
+			.markdown-section h1, 
+			.markdown-section h2 {
+				white-space: normal;
+				overflow: scroll;
+				text-overflow: ellipsis; /* Adds ... if text is too long */
+				min-width: 0;
 			}
 		</style>
 		<script>
