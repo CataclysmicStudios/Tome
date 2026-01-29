@@ -5,7 +5,7 @@
 
 tome_set_site_description("Documentation for the Tome library");
 tome_set_site_name("Tome");
-tome_set_site_latest_version("01-22-2026");
+tome_set_site_latest_version("01-29-2026");
 tome_set_site_older_versions(["04-10-2025", "03-27-2025", "11-20-2024", "03-06-2024", "02-16-2024", "02-15-2024", "Beta-1"]);
 tome_set_site_theme_color("#11DD11");
 
