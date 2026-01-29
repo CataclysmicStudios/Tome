@@ -1,7 +1,5 @@
 {
-  "FolderOrderSettings":[
-    {"name":"_Testing","order":3,"path":"folders/_Testing.yy",},
-  ],
+  "FolderOrderSettings":[],
   "ResourceOrderSettings":[
     {"name":"nte_configuration","order":2,"path":"notes/nte_configuration/nte_configuration.yy",},
     {"name":"nte_exampleSite","order":4,"path":"notes/nte_exampleSite/nte_exampleSite.yy",},
@@ -13,7 +11,6 @@
     {"name":"__tomeFuncQueue","order":7,"path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},
     {"name":"__tomeInit","order":8,"path":"scripts/__tomeInit/__tomeInit.yy",},
     {"name":"__tomeSystemFunctions","order":9,"path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},
-    {"name":"scr_testDuplicateTitle","order":1,"path":"scripts/scr_testDuplicateTitle/scr_testDuplicateTitle.yy",},
     {"name":"tomeConfig","order":4,"path":"scripts/tomeConfig/tomeConfig.yy",},
     {"name":"tomeDocSetup","order":5,"path":"scripts/tomeDocSetup/tomeDocSetup.yy",},
   ],
