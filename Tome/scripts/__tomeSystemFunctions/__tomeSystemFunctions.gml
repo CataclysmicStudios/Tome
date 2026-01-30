@@ -1,6 +1,8 @@
 //Non-userfacing functions/macros used to make the system work
 #macro __TOME_CAN_RUN (TOME_ENABLED && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
 
+#macro __TOME_FILE_OPEN_FAILED -1
+
 #macro TOME_VERSION "01-29-2026" 
 
 /// @desc Generates the documentation website
@@ -12,11 +14,6 @@ function __tome_generate_docs(){
     if (!_repoDirectoryIsValid){
         exit;
     }
-    
-	// Check for duplicate files, because someone may accidentally add files multiple times.
-    __removeDuplicateFiles(global.__tomeData.filesToBeParsed);
-    // Same for slugs
-    __removeDuplicateFiles(global.__tomeData.slugNoteFilePaths);
     
 	__parseAllSlugs();
 	
@@ -90,21 +87,6 @@ function __tome_generate_docs(){
     	__updateFile($"{global.__tomeData.repoFilePath}assets/docsIcon.png", _iconFileContents);
         
         __updateFile($"{global.__tomeData.repoFilePath}.nojekyll", "");
-    }
-    
-    /// @desc Removes duplicate files names from an array
-    /// @param {array<string>} fileArray The array of file names
-    function __removeDuplicateFiles(_fileArray){
-        for (var _fileIndex = 0; _fileIndex < array_length(_fileArray); _fileIndex++){
-    		for (var _checkIndex = _fileIndex; _checkIndex < array_length(_fileArray); _checkIndex++){
-    			if (_checkIndex != _fileIndex){
-    				if (_fileArray[_checkIndex] == _fileArray[_fileIndex]){
-    					array_delete(_fileArray, _checkIndex, 1);
-    					_checkIndex--;	
-    				}
-    			}
-    		}
-    	}
     }
     
     /// @desc Updates a given file, with the given content
@@ -933,38 +915,40 @@ function __tome_get_file_title_and_category(_filePath){
     var _title = "";
     var _category = "";
     
+    var _exitEarly = false;
+    
     var _file = file_text_open_read(_filePath);
     
-    while (!file_text_eof(_file)){
-        // This is a stupid way of getting the title in the format firstWord-secondWord-thirdWord
-        var _lineString = file_text_readln(_file);
-        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineString, " ", "-"); 
-        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "    ", ""); 
-        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\n", ""); 
-        var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\r", ""); 
+    if (_file != __TOME_FILE_OPEN_FAILED){
         
-        if (string_pos("///-@title-", _lineStringWithSpacesAndTabsRemoved) != 0){
-            _title = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@title-", ""); // Remove tag
-            _titleFound = true;
-            __tomeTrace($"Title: {_title} found", true, 2, false);
-        }
-        
-        if (string_pos("///-@category-", _lineStringWithSpacesAndTabsRemoved) != 0){
-            _category = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@category-", ""); // Remove tag
-            _category = string_replace_all(_category, "-", " "); // Replace "-"s with " " because only the title cares about the "-"s 
-            _categoryFound = true;
-            __tomeTrace($"Category: {_category} found", true, 2, false);
-        }
-        
-        if (_titleFound && _categoryFound){
-            return {
-                title: _title,
-                category: _category
+        while (!file_text_eof(_file) && !_exitEarly){
+            // This is a stupid way of getting the title in the format firstWord-secondWord-thirdWord
+            var _lineString = file_text_readln(_file);
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineString, " ", "-"); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "    ", ""); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\n", ""); 
+            var _lineStringWithSpacesAndTabsRemoved = string_replace_all(_lineStringWithSpacesAndTabsRemoved, "\r", ""); 
+            
+            if (string_pos("///-@title-", _lineStringWithSpacesAndTabsRemoved) != 0){
+                _title = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@title-", ""); // Remove tag
+                _titleFound = true;
+                __tomeTrace($"Title: {_title} found", true, 2, false);
             }
+            
+            if (string_pos("///-@category-", _lineStringWithSpacesAndTabsRemoved) != 0){
+                _category = string_replace(_lineStringWithSpacesAndTabsRemoved, "///-@category-", ""); // Remove tag
+                _category = string_replace_all(_category, "-", " "); // Replace "-"s with " " because only the title cares about the "-"s 
+                _categoryFound = true;
+                __tomeTrace($"Category: {_category} found", true, 2, false);
+            }
+            
+            _exitEarly = (_titleFound && _categoryFound)
+            
+            
         }
+        
+        file_text_close(_file);
     }
-    
-    file_text_close(_file);
     
     return {
         title: _title,
@@ -1117,7 +1101,7 @@ function __tomeTrace(_text, _verboseOnly = false, _indention = 0, _includePrefix
     var _tomePrefix = _includePrefix ? "Tome: " : "";
     
     repeat(_indention){
-        _indentionString += "   ";
+        _indentionString += "\t";
     }
     
     var _finalMessageString = _indentionString + $"{_tomePrefix}{_text}";
@@ -1147,7 +1131,8 @@ function __tome_setup_data(){
             navbarItems: [],
             additionalSidebarItems: [],
             docGenerationFailed: false,
-            setupWarnings: []
+            setupWarnings: [],
+            generationWarnings: []
         };
     }
 }

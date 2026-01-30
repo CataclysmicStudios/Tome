@@ -10,22 +10,33 @@ function tome_add_script(_scriptName){
     __tome_setup_data()
 	var _filePath = $"{__tome_file_project_get_directory()}scripts/{_scriptName}/{_scriptName}.gml";
 	
-	if (!file_exists(_filePath)){
-		array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given script doesn't seem to exist: {_scriptName}");
-		exit;
-	}
-	
-	__tomeTrace(string("tome_add_script: File exists: {0}", _scriptName), true, 1);
-	array_push(global.__tomeData.filesToBeParsed, _filePath);
-	
-	// Add slugs
-    var _i = 1;
-    repeat(argument_count - 1){
-		_filePath = $"{__tome_file_project_get_directory()}notes/{argument[_i]}/{argument[_i]}.txt";
-		array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
-        _i++;	
-	}
-	
+    if (!array_contains(global.__tomeData.filesToBeParsed, _filePath)){
+      	if (!file_exists(_filePath)){
+      		array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given script doesn't seem to exist: {_scriptName}");
+      		exit;
+      	}else{
+          	__tomeTrace(string("tome_add_script: File exists: {0}", _scriptName), true, 1, false);
+          	array_push(global.__tomeData.filesToBeParsed, _filePath);
+            
+            // Add slugs
+            var _i = 1;
+            repeat(argument_count - 1){
+                var _fileName = argument[_i];
+                _filePath = $"{__tome_file_project_get_directory()}notes/{_fileName}/{_fileName}.txt";
+                
+                if (!array_contains(global.__tomeData.slugNoteFilePaths, _filePath)){
+                    if (!file_exists(_filePath)){
+                       array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given slug note doesn't seem to exist: {_fileName}");
+                       exit;
+                    }else{
+                        __tomeTrace(string("tome_add_script: File exists: {0}", _fileName), true, 2, false); 
+                        array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
+                    }
+                }
+                _i++;	
+            }
+        }
+    }
 }
 
 /// @func tome_add_note(noteName, [slugs])
@@ -37,20 +48,33 @@ function tome_add_note(_noteName){
     __tome_setup_data()
     var _filePath = $"{__tome_file_project_get_directory()}notes/{_noteName}/{_noteName}.txt";
 	
-	if (!file_exists(_filePath)){
-        array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given note doesn't seem to exist: {_noteName}\n");
-		exit;
-	}
-	
-	array_push(global.__tomeData.filesToBeParsed, _filePath);
-	
-	// Add slugs
-    var _i = 1;
-    repeat(argument_count - 1){
-        _filePath = $"{__tome_file_project_get_directory()}notes/{argument[_i]}/{argument[_i]}.txt";
-		array_push(global.__tomeData.slugNoteFilePaths, _filePath);		
-        _i++;
-	}
+    if (!array_contains(global.__tomeData.filesToBeParsed, _filePath)){
+      	if (!file_exists(_filePath)){
+      		array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given note doesn't seem to exist: {_noteName}");
+      		exit;
+      	}else{
+          	__tomeTrace(string("tome_add_note: File exists: {0}", _noteName), true, 1, false);
+          	array_push(global.__tomeData.filesToBeParsed, _filePath);
+            
+            // Add slugs
+            var _i = 1;
+            repeat(argument_count - 1){
+                var _fileName = argument[_i];
+                _filePath = $"{__tome_file_project_get_directory()}notes/{_fileName}/{_fileName}.txt";
+                
+                if (!array_contains(global.__tomeData.slugNoteFilePaths, _filePath)){
+                    if (!file_exists(_filePath)){
+                        array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given slug note doesn't seem to exist: {_fileName}");
+                        exit;
+                    }else{
+                        __tomeTrace(string("tome_add_script: File exists: {0}", _fileName), true, 2, false); 
+                        array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
+                    }
+                }
+                _i++;	
+            }
+        }
+    }
 }
 
 /// @func tome_add_file(filePath)
