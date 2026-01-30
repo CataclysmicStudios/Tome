@@ -430,11 +430,22 @@ function __tome_parse_script(_filepath) {
 						
 						case "@slug":
 						case "@insert":
+                            var addDiv = ((_inFunc || _inMethod) && !(_inDesc || _inTable || _inCodeBlock || _inTextBlock))
+                            
+                            if (addDiv){
+                                var _indentAmount = _inMethod ? 64 : 32;
+                                _markdown += string("\n<div style=\"margin-left: {0}px;\">\n\n", _indentAmount);
+                            }
+                            
 							for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs); _slugIndex++){
 								if (_tagContent == global.__tomeData.slugs[_slugIndex][0]){
 									_markdown +=  "\n" + global.__tomeData.slugs[_slugIndex][1] + "\n";
 								}
-							}			
+							}
+                            
+                            if (addDiv){
+                                _markdown += "\n</div>\n";	
+                            }
 						break;
 						
 						case "@constructor":
@@ -451,7 +462,7 @@ function __tome_parse_script(_filepath) {
                                 _markdown += string("\n<div style=\"margin-left: {0}px;\">\n\n", _indentAmount);
 								_markdown += _tagContent + "\n\n";		
 								_inDesc = true;
-                                _tableStarted = false; 
+                                _tableStarted = false;
                                 _inTable = false;
 							}else if (!_previousTagIsCompatible){
                                 // If a desc tag is found without a preceeding @function or @method tag, we are no longer in a valid function/method
@@ -634,16 +645,19 @@ function __tome_parse_script(_filepath) {
         // I know this is scuffed, oh well 
         static compatibilityStruct =  {
             "@desc": [ // desc/description is compatible with the following previous tags, else it's not parsed
+                "@slug",
                 "@method",
                 "@func",
                 "@function"
             ],
             "@description": [
+                "@slug",
                 "@method",
                 "@func",
                 "@function"
             ],
             "@param": [
+                "@slug",
                 "@param",
                 "@parameter",
                 "@arg",
@@ -655,6 +669,7 @@ function __tome_parse_script(_filepath) {
                 "description"
             ],
             "@parameter": [
+                "@slug",
                 "@param",
                 "@parameter",
                 "@arg",
@@ -666,6 +681,7 @@ function __tome_parse_script(_filepath) {
                 "description"
             ],
             "@arg": [
+                "@slug",
                 "@param",
                 "@parameter",
                 "@arg",
@@ -677,6 +693,7 @@ function __tome_parse_script(_filepath) {
                 "description"
             ],
             "@argument": [
+                "@slug",
                 "@param",
                 "@parameter",
                 "@arg",
@@ -801,11 +818,11 @@ function __tome_parse_markdown(_filepath, _homepage = false){
 					
 					case "@slug":
 					case "@insert":
-						for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs); _slugIndex++){
+                        for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs); _slugIndex++){
 							if (_tagContent == global.__tomeData.slugs[_slugIndex][0]){
 								_markdown +=  "\n" + global.__tomeData.slugs[_slugIndex][1] + "\n";
 							}
-						}			
+						}
 					break;
 					
 					default:
