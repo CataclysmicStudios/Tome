@@ -46,6 +46,7 @@
     {"id":{"name":"__tomeFuncQueue","path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},},
     {"id":{"name":"__tomeInit","path":"scripts/__tomeInit/__tomeInit.yy",},},
     {"id":{"name":"__tomeSystemFunctions","path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},},
+    {"id":{"name":"test","path":"scripts/test/test.yy",},},
     {"id":{"name":"tomeConfig","path":"scripts/tomeConfig/tomeConfig.yy",},},
     {"id":{"name":"tomeDocSetup","path":"scripts/tomeDocSetup/tomeDocSetup.yy",},},
   ],

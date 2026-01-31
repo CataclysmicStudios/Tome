@@ -2,93 +2,132 @@
 /// @category API Reference
 /// @text Below are the functions you'll use to set up your docs and generate them. 
 
+/// @func tome_add(file, [slugs])
+/// @desc Adds a file to be parsed as a page to your site
+/// @param {string} file The name of a file (as shown in the IDE) or a direct file path to an external file
+/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
+function tome_add(_file){
+    __tome_setup_data();
+    
+    var _filePath = $"{__tome_file_project_get_directory()}scripts/{_file}/{_file}.gml";
+    
+    if (!file_exists(_filePath)){
+        _filePath = $"{__tome_file_project_get_directory()}notes/{_file}/{_file}.txt";
+    }
+    
+    if (!file_exists(_filePath)){
+        _filePath = _file;
+    }
+
+    if (!array_contains(global.__tomeData.filesToBeParsed, _file)){
+      	if (!file_exists(_filePath)){
+      		array_push(global.__tomeData.setupWarnings, $"tome_add: The given file doesn't seem to exist as an script, note, or external file: {_filePath}");
+      		exit;
+      	}else{
+          	__tomeTrace(string("tome_add: File exists: {0}", _filePath), true, 1, false);
+          	array_push(global.__tomeData.filesToBeParsed, _filePath);
+            
+            // Add slugs
+            if (argument_count > 1){
+                
+                // Figure out if we have been passed an array of slug files or if the list of slug files have been passed as individual arguments
+                var _isArray = is_array(argument[1]);
+                var _i = _isArray ? 0 : 1;
+                var _slugArray = _isArray ? argument[1] : argument
+                var _loopCount = array_length(_slugArray);
+                
+                repeat(_loopCount - _i){
+                    var _fileName = argument[_i];
+                    var _filePath = ""
+                    
+                    if (file_exists(_fileName)){
+                        _filePath = _fileName;
+                    }else{
+                        _filePath = $"{__tome_file_project_get_directory()}notes/{_fileName}/{_fileName}.txt";
+                    }
+                    
+                    if (!array_contains(global.__tomeData.slugNoteFilePaths, _filePath)){
+                        if (!file_exists(_filePath)){
+                           array_push(global.__tomeData.setupWarnings, $"tome_add: The given slug file doesn't seem to exist as a note or external file: {_fileName}");
+                           exit;
+                        }else{
+                            __tomeTrace(string("tome_add_script: File exists: {0}", _fileName), true, 2, false); 
+                            array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
+                        }
+                    }
+                    _i++;
+                }
+            }
+        }
+    }
+    
+}
+
+/// @deprecated Use `tome_add` instead
 /// @func tome_add_script(script, [slugs])
 /// @desc Adds a script to be parsed as a page to your site
 /// @param {string} scriptName The name off the script to add
-/// @param {string} [slugs] The name of any notes that will be used for adding slugs.
+/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
 function tome_add_script(_scriptName){
-    __tome_setup_data()
-	var _filePath = $"{__tome_file_project_get_directory()}scripts/{_scriptName}/{_scriptName}.gml";
-	
-    if (!array_contains(global.__tomeData.filesToBeParsed, _filePath)){
-      	if (!file_exists(_filePath)){
-      		array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given script doesn't seem to exist: {_scriptName}");
-      		exit;
-      	}else{
-          	__tomeTrace(string("tome_add_script: File exists: {0}", _scriptName), true, 1, false);
-          	array_push(global.__tomeData.filesToBeParsed, _filePath);
-            
-            // Add slugs
-            var _i = 1;
-            repeat(argument_count - 1){
-                var _fileName = argument[_i];
-                _filePath = $"{__tome_file_project_get_directory()}notes/{_fileName}/{_fileName}.txt";
-                
-                if (!array_contains(global.__tomeData.slugNoteFilePaths, _filePath)){
-                    if (!file_exists(_filePath)){
-                       array_push(global.__tomeData.setupWarnings, $"tome_add_script: The given slug note doesn't seem to exist: {_fileName}");
-                       exit;
-                    }else{
-                        __tomeTrace(string("tome_add_script: File exists: {0}", _fileName), true, 2, false); 
-                        array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
-                    }
-                }
-                _i++;	
-            }
+    var slugs = [];
+    
+    var _i = 0;
+    if (argument_count > 1){
+        repeat(argument_count - 1){
+            array_push(slugs, argument[_i])
         }
     }
+    
+    if (array_length(slugs) > 0){
+        tome_add(_scriptName, slugs);
+    }else{
+        tome_add(_scriptName);
+    } 
 }
 
+/// @deprecated Use `tome_add` instead
 /// @func tome_add_note(noteName, [slugs])
-/// @desc Adds a note to be parsed as a page to your site
+/// @desc Adds a note to be parsed as a page to your site 
 /// @param {string} noteName The note to add
-/// @param {string} [slugs] The name of any notes that will be used for adding slugs.
-/// @text ?> When using `tome_add_note()`, only the tags `@title` and `@category` are parsed. The rest of the text is displayed as-is.
+/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
 function tome_add_note(_noteName){
-    __tome_setup_data()
-    var _filePath = $"{__tome_file_project_get_directory()}notes/{_noteName}/{_noteName}.txt";
-	
-    if (!array_contains(global.__tomeData.filesToBeParsed, _filePath)){
-      	if (!file_exists(_filePath)){
-      		array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given note doesn't seem to exist: {_noteName}");
-      		exit;
-      	}else{
-          	__tomeTrace(string("tome_add_note: File exists: {0}", _noteName), true, 1, false);
-          	array_push(global.__tomeData.filesToBeParsed, _filePath);
-            
-            // Add slugs
-            var _i = 1;
-            repeat(argument_count - 1){
-                var _fileName = argument[_i];
-                _filePath = $"{__tome_file_project_get_directory()}notes/{_fileName}/{_fileName}.txt";
-                
-                if (!array_contains(global.__tomeData.slugNoteFilePaths, _filePath)){
-                    if (!file_exists(_filePath)){
-                        array_push(global.__tomeData.setupWarnings, $"tome_add_note: The given slug note doesn't seem to exist: {_fileName}");
-                        exit;
-                    }else{
-                        __tomeTrace(string("tome_add_script: File exists: {0}", _fileName), true, 2, false); 
-                        array_push(global.__tomeData.slugNoteFilePaths, _filePath);	
-                    }
-                }
-                _i++;	
-            }
+    var slugs = [];
+    
+    var _i = 0;
+    if (argument_count > 1){
+        repeat(argument_count - 1){
+            array_push(slugs, argument[_i])
         }
     }
+    
+    if (array_length(slugs) > 0){
+        tome_add(_noteName, slugs);
+    }else{
+        tome_add(_noteName);
+    } 
+
 }
 
+/// @deprecated Use `tome_add` instead
 /// @func tome_add_file(filePath)
-/// @desc Adds a file to be parsed when the docs are generated
+/// @desc Adds an external file to be parsed when the docs are generated
 /// @param {string} filePath The file to add
-/// @text ?> When adding a file, if you want Tome to parse the jsdoc tags @func, @desc, @param, and @return, the file must have the extension `.gml`.
+/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
 function tome_add_file(_filePath){
-    __tome_setup_data()
-	if (!file_exists(_filePath)){
-		array_push(global.__tomeData.setupWarnings, $"tome_add_file: The given file doesn't seem to exist: {_filePath}");
-		exit;
-	}
-	
-	array_push(global.__tomeData.filesToBeParsed, _filePath);
+    var slugs = [];
+    
+    var _i = 0;
+    if (argument_count > 1){
+        repeat(argument_count - 1){
+            array_push(slugs, argument[_i])
+        }
+    }
+    
+    if (array_length(slugs) > 0){
+        tome_add(_filePath, slugs);
+    }else{
+        tome_add(_filePath);
+    }
 }
 
 /// @func tome_set_homepage_from_file(filePath)

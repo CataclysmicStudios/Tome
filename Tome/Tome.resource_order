@@ -11,6 +11,7 @@
     {"name":"__tomeFuncQueue","order":7,"path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},
     {"name":"__tomeInit","order":8,"path":"scripts/__tomeInit/__tomeInit.yy",},
     {"name":"__tomeSystemFunctions","order":9,"path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},
+    {"name":"test","order":1,"path":"scripts/test/test.yy",},
     {"name":"tomeConfig","order":4,"path":"scripts/tomeConfig/tomeConfig.yy",},
     {"name":"tomeDocSetup","order":5,"path":"scripts/tomeDocSetup/tomeDocSetup.yy",},
   ],

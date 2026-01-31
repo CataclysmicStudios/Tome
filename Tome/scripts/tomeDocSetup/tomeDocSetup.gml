@@ -12,6 +12,7 @@ tome_set_site_theme_color("#11DD11");
 tome_set_homepage_from_note("nte_homepage");
 tome_add_script("__tome");
 tome_add_script("__tome");
+tome_add_script("test");
 tome_add_note("nte_settingUp");
 tome_add_note("nte_configuration");
 tome_add_note("nte_configuration");
@@ -20,7 +21,7 @@ tome_add_note("nte_formattingScripts", "nte_slugs");
 tome_add_note("nte_advancedUse");
 tome_add_note("nte_advancedUse");
 
-tome_add_to_sidebar("Google", "Https://www.google.com", "Links");
+tome_add_to_sidebar("Google", "Https://www.google.com", "API Reference");
 
 tome_add_navbar_link("Report a bug", "https://github.com/CataclysmicStudios/Tome/issues");
 tome_add_navbar_link("Releases", "https://github.com/CataclysmicStudios/Tome/releases");

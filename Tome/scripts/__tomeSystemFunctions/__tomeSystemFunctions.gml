@@ -223,6 +223,13 @@ function __tome_generate_docs(){
     #endregion
 }
 
+/// @desc Parses a file and generates markdown documentation.
+/// @param {string} filepath Path to the file.
+/// @returns {struct} Struct containing the markdown text, title, and category
+function __tome_parse_file(_filepath){
+    var markdown = ""; // The final marckdown string that will be returned
+}
+
 /// @desc Parses a GML file and generates markdown documentation.
 /// @param {string} filepath Path to the GML file.
 /// @returns {struct} Struct containing the markdown text, title, and category
