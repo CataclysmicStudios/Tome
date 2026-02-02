@@ -515,7 +515,7 @@ function __tome_parse_script(_filepath) {
 						case "@arg":
 						case "@argument":
 							if (_inFunc && __previousTagIsCompatible(_tagType, _previousTag)){
-                                if (_inDesc){
+                                if (_inDesc || _inTextBlock){
                                     _markdown += "\n</div> \n\n";	
                                 }
                                 
@@ -551,7 +551,7 @@ function __tome_parse_script(_filepath) {
 						case "@returns":
 						case "@return":
 							if (_inFunc){
-                                if (_inTable || _inMethod || _inDesc){
+                                if (_inTable || _inMethod || _inDesc || _inTextBlock){
                                     _markdown += "\n </div>\n"
                                 }
                                 
