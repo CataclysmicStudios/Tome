@@ -10,16 +10,19 @@ tome_set_site_older_versions(["04-10-2025", "03-27-2025", "11-20-2024", "03-06-2
 tome_set_site_theme_color("#11DD11");
 
 tome_set_homepage_from_note("nte_homepage");
-tome_add_script("__tome");
-tome_add_script("__tome");
-tome_add_script("test");
-tome_add_note("nte_settingUp");
-tome_add_note("nte_configuration");
-tome_add_note("nte_configuration");
-tome_add_note("nte_exampleSite");
-tome_add_note("nte_formattingScripts", "nte_slugs");
-tome_add_note("nte_advancedUse");
-tome_add_note("nte_advancedUse");
+tome_add("__tome");
+tome_add("__tome");
+tome_add("shit");
+tome_add("test");
+tome_add("nte_settingUp");
+tome_add("nte_configuration");
+tome_add("nte_configuration");
+tome_add("nte_exampleSite");
+tome_add("nte_formattingScripts", "nte_slugs");
+tome_add("nte_advancedUse");
+tome_add("nte_advancedUse");
+tome_add("C:/fuckyou.txt");
+tome_add("E:/shit.txt");
 
 tome_add_to_sidebar("Google", "Https://www.google.com", "API Reference");
 

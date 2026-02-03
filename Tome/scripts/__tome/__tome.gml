@@ -2,7 +2,9 @@
 /// @category API Reference
 /// @text Below are the functions you'll use to set up your docs and generate them. 
 
-/// @func tome_add(file, [slugs])
+
+
+#region /// @func tome_add(file, [slugs])
 /// @desc Adds a file to be parsed as a page to your site
 /// @param {string} file The name of a file (as shown in the IDE) or a direct file path to an external file
 /// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
@@ -61,7 +63,7 @@ function tome_add(_file){
         }
     }
     
-}
+}#endregion
 
 /// @deprecated Use `tome_add` instead
 /// @func tome_add_script(script, [slugs])

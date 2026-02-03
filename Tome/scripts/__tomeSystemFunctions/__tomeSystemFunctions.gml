@@ -5,33 +5,44 @@
 
 #macro TOME_VERSION "01-29-2026" 
 
+enum __TOME_FILE_TYPE{
+    GML,
+    TXT
+}
+
 /// @desc Generates the documentation website
-/// @desc Parses all files added via `tome_add_` functions and generates your documenation site.  
+/// @desc Parses all files added via `tome_add` functions and generates your documenation site.  
 ///              Then it adds them to the repo path specified with the macro `TOME_REPO_PATH`
 function __tome_generate_docs(){
-    var _repoDirectoryIsValid = __verifyRepoPath();
     
-    if (!_repoDirectoryIsValid){
-        exit;
+    if (GM_is_sandboxed){
+        array_push(global.__tomeData.generationWarnings, "GameMaker's file system sandbox is enabled. Tome will not function properly with this enabled, to disable go to Game Options -> Platform (Windows, macOS, Ubuntu) -> Check the \"Disable file system sandbox\"");
+        global.__tomeData.docGenerationFailed = true;
     }
     
-	__parseAllSlugs();
-	
-	__updateDocsifyFiles();
-
-	// Update homepage 
-    __tomeTrace("Updating homepage", true, 2, false);
-    __updateFile($"{__tome_file_get_final_doc_path()}README.md", global.__tomeData.homepageContent);
-
-	__generateDocFiles();
+    if (!global.__tomeData.docGenerationFailed){
+        var _repoDirectoryIsValid = __verifyRepoPath();
+    }
     
-    __addAdditionalSidebarItemsToSidebarData();
+    if (!global.__tomeData.docGenerationFailed){
+    	__parseAllSlugs();
+    	
+    	__updateDocsifyFiles();
     
-    __tomeTrace("Generating sidebar and navbar", true, 2, false);
-	
-	__generateSidebar();
+    	// Update homepage 
+        __tomeTrace("Updating homepage", true, 2, false);
+        __updateFile($"{__tome_file_get_final_doc_path()}README.md", global.__tomeData.homepageContent);
     
-    __generateNavbar();
+    	__generateDocFiles();
+        
+        __addAdditionalSidebarItemsToSidebarData();
+        
+        __tomeTrace("Generating sidebar and navbar", true, 2, false);
+    	
+    	__generateSidebar();
+        
+        __generateNavbar();
+    }
     
     #region SubFunctions
     
@@ -44,6 +55,7 @@ function __tome_generate_docs(){
     		// Parse file and get results
     		var _currentFilePath = global.__tomeData.filesToBeParsed[_i];
     		var _fileExtension = __tome_file_get_extension(_currentFilePath);
+            __tome_parse_file(_currentFilePath);
     		var _docStruct = _fileExtension == "gml" ? __tome_parse_script(_currentFilePath) : __tome_parse_markdown(_currentFilePath);
     		// Save the .md files to the local repo directory
             var _pageTitleWithSpacesReplacedWithDashes = string_replace_all(_docStruct.title, " ", "-");
@@ -128,7 +140,7 @@ function __tome_generate_docs(){
         }
         
         if (!directory_exists(_repoPathWithAddedForwardSlash)){
-            __tomeTrace($"The repo path: \"{_repoPathWithAddedForwardSlash}\" isn't a valid filepath, make sure the directory actually exists!", false, 1, false);
+            array_push(global.__tomeData.generationWarnings, $"The repo path: \"{_repoPathWithAddedForwardSlash}\" isn't a valid filepath, make sure the directory actually exists!");
             global.__tomeData.docGenerationFailed = true;
             return false;
         }
@@ -227,7 +239,42 @@ function __tome_generate_docs(){
 /// @param {string} filepath Path to the file.
 /// @returns {struct} Struct containing the markdown text, title, and category
 function __tome_parse_file(_filepath){
-    var markdown = ""; // The final marckdown string that will be returned
+    var markdown = {}; // The markdown struct that is generated for this particular file
+    
+    var _fileType = string_trim(filename_ext(_filepath), ["."]) == "gml" ? __TOME_FILE_TYPE.GML : __TOME_FILE_TYPE.TXT;
+    var _file = file_text_open_read(_filepath);
+    
+    if (_file != __TOME_FILE_OPEN_FAILED){
+        
+        __tomeTrace($"File type: {_fileType == __TOME_FILE_TYPE.GML ? "gml" : "txt"}");
+        
+        while (!file_text_eof(_file)){
+            var _lineString = file_text_readln(_file);
+            var _rawUneditedLineString = _lineString;
+            
+            /// Added removal of #region tags as the line may not always begin with "///" but may begin with "#region ///"
+    		var _replace = string_starts_with(string_trim_start(_lineString), "#region");
+            
+            
+            show_debug_message($"Replace {_replace}");
+            show_debug_message(_lineString);
+            _lineString = string_replace(_lineString, "#region", "");
+            show_debug_message(_lineString);
+            
+            if (string_starts_with(string_trim_start(_lineString), "///")){ 
+                _lineString = string_replace(_lineString, "///", "");
+            }
+            
+            _lineString = string_trim(_lineString);
+            
+            
+        }
+        
+        file_text_close(_file);
+    }else{
+        array_push(global.__tomeData.generationWarnings, $"Failed to open file {_filepath}: Check permissions of the file.");
+        global.__tomeData.docGenerationFailed = true;
+    }
 }
 
 /// @desc Parses a GML file and generates markdown documentation.
@@ -842,9 +889,10 @@ function __tome_parse_markdown_slug(_filePath){
 	var _inSlug = false;
 	var _markdown = "";
 	var _slugName = "";
-
-	if (_file == -1) {
-		__tomeTrace("Failed to open file: " + _filePath);
+    
+	if (_file == __TOME_FILE_OPEN_FAILED) {
+        global.__tomeData.docGenerationFailed = true;
+        array_push(global.__tomeData.generationWarnings, string($"Failed to open file {filepath}, check permissions of file."))
 	}else{
 		while (!file_text_eof(_file)) {
 			var _lineStringUntrimmed = file_text_readln(_file);
