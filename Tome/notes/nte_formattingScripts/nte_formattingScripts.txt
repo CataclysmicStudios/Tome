@@ -44,6 +44,7 @@ function tome_add_to_sidebar(_name, _link, _category){
 
 #### Example
 ```gml
+/// @pass tags
 /// @constructor
 /// @func dropTable(maxItemAmount)
 /// @param {real} maxItemAmount The amount of items that the droptable contains, after all the items have been dropped, EMPTY_STRUCT will be returned
@@ -130,6 +131,7 @@ function dropTable(_maxItemAmount) constructor {
 		__dropChance = _dropChance;
 	}
 }
+/// @pass false
 ```
 
 ### Additional Tome Tags
@@ -141,9 +143,11 @@ For adding a single/multi-line block of [markdown](https://www.markdownguide.org
 `/// @text **This is some bold text**`
 
 ```gml
+/// @pass tags
 /// @text **Bold** and *italisized* text
 /// across muitiple lines!
 /// ## You can use keep going!
+/// @pass false
 ```
 
 #### `@code`
@@ -153,9 +157,11 @@ For embeding a code block on your site like:
 
 ##### Example
 ```gml
+/// @pass tags
 /// @code
 /// toolInv = new inventory(4, ["itemTool"], false);
 /// storage = new inventory(64, ["item"], true);
+/// @pass false
 ```
 
 The use of slugs can help reduce bloat in your implementation file, if you chose to add examples as a part of your JSDoc. 
@@ -186,6 +192,7 @@ This will result in markdown that outputs like this
 
 ## Full Example of Tome's *Primary Functions* Page
 ```gml
+/// @pass tags
 /// @title Primary functions
 /// @category API Reference
 /// @text Below are the functions you'll use to set up your docs and generate them. 
@@ -340,6 +347,7 @@ function tome_add_navbar_link(_name, _link){
 	
 	array_push(global.__tomeData.navbarItems, _navbarItem);
 }
+/// @pass false
 ```
 
 ## All Tags

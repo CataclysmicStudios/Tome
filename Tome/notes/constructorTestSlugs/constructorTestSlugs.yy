@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"constructorTestSlugs",
+  "name":"constructorTestSlugs",
+  "parent":{
+    "name":"Slugs",
+    "path":"folders/Tests/Notes/Slugs.yy",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

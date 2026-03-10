@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"Tome",
   "AudioGroups":[
-    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -11,6 +11,9 @@
   "defaultScriptType":1,
   "Folders":[
     {"$GMFolder":"","%Name":"Docs","folderPath":"folders/Docs.yy","name":"Docs","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Tests","folderPath":"folders/Tests.yy","name":"Tests","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Notes","folderPath":"folders/Tests/Notes.yy","name":"Notes","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Slugs","folderPath":"folders/Tests/Notes/Slugs.yy","name":"Slugs","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Tome","folderPath":"folders/Tome.yy","name":"Tome","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"_system","folderPath":"folders/Tome/_system.yy","name":"_system","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
@@ -34,6 +37,7 @@
   },
   "name":"Tome",
   "resources":[
+    {"id":{"name":"constructorTestSlugs","path":"notes/constructorTestSlugs/constructorTestSlugs.yy",},},
     {"id":{"name":"nte_advancedUse","path":"notes/nte_advancedUse/nte_advancedUse.yy",},},
     {"id":{"name":"nte_configuration","path":"notes/nte_configuration/nte_configuration.yy",},},
     {"id":{"name":"nte_exampleSite","path":"notes/nte_exampleSite/nte_exampleSite.yy",},},
@@ -43,9 +47,11 @@
     {"id":{"name":"nte_slugs","path":"notes/nte_slugs/nte_slugs.yy",},},
     {"id":{"name":"rm_test","path":"rooms/rm_test/rm_test.yy",},},
     {"id":{"name":"__tome","path":"scripts/__tome/__tome.yy",},},
-    {"id":{"name":"__tomeFuncQueue","path":"scripts/__tomeFuncQueue/__tomeFuncQueue.yy",},},
     {"id":{"name":"__tomeInit","path":"scripts/__tomeInit/__tomeInit.yy",},},
     {"id":{"name":"__tomeSystemFunctions","path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},},
+    {"id":{"name":"constructorTest","path":"scripts/constructorTest/constructorTest.yy",},},
+    {"id":{"name":"constructorTests1","path":"scripts/constructorTests1/constructorTests1.yy",},},
+    {"id":{"name":"functionTest","path":"scripts/functionTest/functionTest.yy",},},
     {"id":{"name":"test","path":"scripts/test/test.yy",},},
     {"id":{"name":"tomeConfig","path":"scripts/tomeConfig/tomeConfig.yy",},},
     {"id":{"name":"tomeDocSetup","path":"scripts/tomeDocSetup/tomeDocSetup.yy",},},

@@ -1,0 +1,31 @@
+/// @slug network-client-example
+**Example:**
+```gml
+// Create a new client and attempt to connect
+global.client = new NetworkClient("192.168.1.100", 25565);
+var _success = global.client.connect(5000);
+```
+/// @slug send-message-priority
+Priority Levels:
+| Level | Description |
+|---|---|
+| 0 | Low priority (Background tasks) |
+| 1 | Normal priority (Chat, movement) |
+| 2 | High priority (Combat actions, state changes) |
+
+/// @slug spawn-enemy-usage
+Usage Example:
+This method allows you to quickly populate the area around the EntitySpawner's initial coordinates.
+```gml 
+// Initialize the spawner at x: 250, y: 300
+var _cave_spawner = new EntitySpawner(250, 300);
+
+// Spawn a standard mob of enemies
+_cave_spawner.spawn_enemy("goblin", 5);
+
+// Spawn a single, tougher enemy type
+_cave_spawner.spawn_enemy("orc_brute", 1);
+```
+
+/// @slug boss-encounter-warning
+!> Important Migration Note: The spawn_boss method relies on the legacy spawn tables and may cause unexpected desyncs in multiplayer. Please transition to BossEncounter(boss_id) for new implementations.

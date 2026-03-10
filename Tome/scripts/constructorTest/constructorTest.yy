@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"__tomeFuncQueue",
+  "%Name":"constructorTest",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"__tomeFuncQueue",
+  "name":"constructorTest",
   "parent":{
-    "name":"_system",
-    "path":"folders/Tome/_system.yy",
+    "name":"Tests",
+    "path":"folders/Tests.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
