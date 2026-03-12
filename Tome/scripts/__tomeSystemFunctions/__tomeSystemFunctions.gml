@@ -1,10 +1,16 @@
+
+/// @pass true
 // Non-userfacing functions/macros used to make the system work
 
 #region Macro declaration
 
+#macro __TOME_DATA global.__tomeData
+
 #macro __TOME_CAN_RUN (TOME_ENABLED && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
 
 #macro __TOME_FILE_OPEN_FAILED -1
+
+#macro __TOME_VERSION "01-29-2026"
 
 #macro __TOME_NEW_CONTEXT variable_clone({                                          \
                                 _contextType: __TOME_CONTEXT_TYPE.TEXT,             \
@@ -12,8 +18,6 @@
                                 _nextContext: undefined,                            \
                                 _edited: false                                      \
                             })
-
-#macro TOME_VERSION "01-29-2026" 
 
 #endregion // Macro declaration
 
@@ -44,107 +48,114 @@ enum __TOME_SIDEBAR_TYPE{
 
 #endregion // Enum declaration
 
-#region /// @func __tome_generate_docs()
+#region Core System Functions
+
+#region /// @func __tomeSetupData()
+/// @desc Initializes the global struct that holds Tome's data(if it doesn't already exist)
+function __tomeSetupData(){
+    if (!variable_global_exists("__tomeData")){
+        var _projectDirectory = string_trim(string_replace_all(filename_dir(GM_project_filename) + "\\", "\\", "/"));
+        
+        global.__tomeData = {
+            repoFilePath: "",
+            categories: {
+                names: [],
+                map: {}
+            },
+            slugs: [],
+            docsPageItems: [],
+            parsedSlugPaths: [],
+            parsedFilePaths: [],
+            navbarItems: [],
+            warnings: [],
+            docGenerationFailed: false,
+            projectDirectory: _projectDirectory,
+            customCSS: {},
+            config: {}
+        };
+        
+        var _cssStruct = __tomeCSSToStruct(__tomeFileTextReadAll($"{_projectDirectory}datafiles/Tome/assets/customTheme.css", true));
+        __TOME_DATA.customCSS = _cssStruct;
+
+        var _configStruct = __tomeParseConfig($"{_projectDirectory}datafiles/Tome/config.js");
+        __TOME_DATA.config = _configStruct;
+    }
+}
+#endregion // __tomeSetupData
+
+#region /// @func __tomeGenerateDocs()
 /// @desc Generates the documentation website
 /// Parses all files added via `tome_add` functions and generates your documenation site.  
 /// Then it adds them to the repo path specified with the macro `TOME_REPO_PATH`
-function __tome_generate_docs(){
+function __tomeGenerateDocs(){
     
     if (GM_is_sandboxed){
-        array_push(global.__tomeData.warnings, "GameMaker's file system sandbox is enabled. Tome will not function with this enabled, to disable go to Game Options -> Platform (Windows, macOS, Ubuntu) -> Check the \"Disable file system sandbox\"");
-        global.__tomeData.docGenerationFailed = true;
+        array_push(__TOME_DATA.warnings, "GameMaker's file system sandbox is enabled. Tome will not function with this enabled, to disable go to Game Options -> Platform (Windows, macOS, Ubuntu) -> Check the \"Disable file system sandbox\"");
+        __TOME_DATA.docGenerationFailed = true;
     }
     
-    if (!global.__tomeData.docGenerationFailed){
-        var _repoDirectoryIsValid = __verifyRepoPath();
+    if (!__TOME_DATA.docGenerationFailed){
+        var _repoDirectoryIsValid = __tomeVerifyRepoPath();
     }
     
-    if (!global.__tomeData.docGenerationFailed){
+    if (!__TOME_DATA.docGenerationFailed){
     	
-    	__updateDocsifyFiles();
+        var finalDocDirectory = __tomeFileGetFinalDocPath();
+        if (string_ends_with(finalDocDirectory, "/")){
+            finalDocDirectory = string_copy(finalDocDirectory, 1, string_length(finalDocDirectory) - 1);
+        }
+            
+        if (directory_exists(finalDocDirectory)){ 
+            directory_destroy(finalDocDirectory);
+        }
         
-        __unifySidebarItems();
+        directory_create(finalDocDirectory);
+        
+    	__tomeUpdateDocsifyFiles();
+        
+        __tomeProcessDocsItems();
         
         __tomeTrace("Generating sidebar and navbar", true, 2, false);
     	
-    	__generateSidebar();
+    	__tomeGenerateSidebar();
         
-        __generateNavbar();
+        __tomeGenerateNavbar();
     }
 
 }
-#endregion // __tome_generate_docs
+#endregion // __tomeGenerateDocs
+
+#endregion // Core System Functions
     
-#region Sub functions
+#region File I/O
 
-/// @desc Sort through site struct if multiple entries contain the same category and title group them together.
-function __unifySidebarItems(){
-    
-    array_reverse_ext(global.__tomeData.docsPageItems);
-    
-    /// @type {any}
-    var _item = array_pop(global.__tomeData.docsPageItems);
-    var _finalDocPath = __tome_file_get_final_doc_path();
-    var _illegalFilePathChars = [" ", "\\", "/", ":", "*", "?", "\"", "<", ">", "|"];
-    while (_item != undefined){
-        
-        if (_item._sidebarType == __TOME_SIDEBAR_TYPE.FILE){
-
-            var _fileCategoryDashed = __tome_string_replace_all_ext(_item._category, _illegalFilePathChars, "-");
-            var _fileTitleDashed = __tome_string_replace_all_ext(_item._title, _illegalFilePathChars, "-");
-            
-            var _filePath = $"{_fileCategoryDashed}-{_fileTitleDashed}.md";
-
-            if (_filePath == "homepage-homepage.md"){
-                _filePath = "README.md";
-            }
-
-            _item._link = _filePath;
-
-            _filePath = $"{_finalDocPath}/{_filePath}"
-
-            __updateFile(_filePath, __tome_generate(_item));
-        }
-
-        if (_item._category != "homepage"){
-            if (!array_contains(global.__tomeData.categories.names, _item._category)){
-                array_push(global.__tomeData.categories.names, _item._category);
-                variable_struct_set(global.__tomeData.categories.map, $"{_item._category}", [_item]);
-            }else{
-                array_push(variable_struct_get(global.__tomeData.categories.map, $"{_item._category}"), _item);
-            }
-        }
-        
-        _item = array_pop(global.__tomeData.docsPageItems);
-        
+#region /// @func __tomeVerifyRepoPath()
+/// @desc Makes sure TOME_LOCAL_REPO path is a valid directory
+function __tomeVerifyRepoPath(){
+    // In case the user didn't end their repo filepath with "/", add it
+    if (!string_ends_with(TOME_LOCAL_REPO_PATH, "/")){
+        var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH + "/";
+    }else{
+        var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH; 
     }
     
+    if (!directory_exists(_repoPathWithAddedForwardSlash)){
+        array_push(__TOME_DATA.warnings, $"The repo path: \"{_repoPathWithAddedForwardSlash}\" isn't a valid filepath, make sure the directory actually exists!");
+        __TOME_DATA.docGenerationFailed = true;
+        return false;
+    }
+    
+    __TOME_DATA.repoFilePath = _repoPathWithAddedForwardSlash;
+    return true;
 }
+#endregion // __tomeVerifyRepoPath
 
-/// @desc Updates basic docsify files: Config.js, index.html, codeTheme.css, customTheme.css, docsIcon.png, and .nojekyll
-function __updateDocsifyFiles(){
-    __tomeTrace("Updating Docsify files", true, 2, false);
-
-    var _repoFilePath = global.__tomeData.repoFilePath;
-    
-    __updateFile($"{_repoFilePath}config.js", __tome_file_text_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/config.js"));
-    
-    __updateFile($"{_repoFilePath}index.html", __tome_file_text_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/index.html"));
-
-    __updateFile($"{_repoFilePath}assets/codeTheme.css", __tome_file_text_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/assets/codeTheme.css"));
-
-    __updateFile($"{_repoFilePath}assets/customTheme.css", __tome_file_text_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/assets/customTheme.css"));
-    
-    __updateFile($"{_repoFilePath}assets/docsIcon.png", __tome_file_bin_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/assets/docsIcon.png"));
-    
-    __updateFile($"{_repoFilePath}.nojekyll", "");
-}
-
+#region /// @func __tomeUpdateFile(filePath, fileContent)
 /// @desc Updates a given file, with the given content
 /// @param {string} _filePath The path to the file to update
 /// @param {string|buffer} _fileContent The data to save out to disk. If providing a buffer, it will be deleted after saving.
 /// @returns {boolean} Whether the file was successfully updated/created or not.
-function __updateFile(_filePath, _fileContent){
+function __tomeUpdateFile(_filePath, _fileContent){
     var _fileBuffer;
     
     var _success = (is_string(_fileContent)) || (!is_undefined(_fileContent) && buffer_exists(_fileContent));
@@ -152,12 +163,12 @@ function __updateFile(_filePath, _fileContent){
     var _existed = file_exists(_filePath);
     
     if (!_success){
-        array_push(global.__tomeData.warnings, $"Data was not passed as a string or buffer to write to file at path {_filePath}. If you are seeing this warning, this is a bug in Tome, please report as an issue on Github.");
-        global.__tomeData.docGenerationFailed = true;
+        array_push(__TOME_DATA.warnings, $"Data was not passed as a string or buffer to write to file at path {_filePath}. If you are seeing this warning, this is a bug in Tome, please report as an issue on Github.");
+        __TOME_DATA.docGenerationFailed = true;
     }else if (_existed){
-        if (!file_delete(_filePath)) {
-            array_push(global.__tomeData.warnings, $"Failed to delete locked file at path {_filePath}. Ensure it is not open in another program.");
-            global.__tomeData.docGenerationFailed = true;
+        if (!file_delete(_filePath)){
+            array_push(__TOME_DATA.warnings, $"Failed to delete locked file at path {_filePath}. Ensure it is not open in another program.");
+            __TOME_DATA.docGenerationFailed = true;
             _success = false;
 
             if (!is_string(_fileContent)){
@@ -183,101 +194,69 @@ function __updateFile(_filePath, _fileContent){
         if (_success){
             __tomeTrace(string("Local repo file {0}: {1}", _existed ? "updated" : "created", _filePath), true, 3, false);
         }else{
-            array_push(global.__tomeData.warnings, $"Failed to {_existed ? "update" : "create"} file at path {_filePath}. Check permissions of the file and ensure the directory exists.");
-            global.__tomeData.docGenerationFailed = true;
+            array_push(__TOME_DATA.warnings, $"Failed to {_existed ? "update" : "create"} file at path {_filePath}. Check permissions of the file and ensure the directory exists.");
+            __TOME_DATA.docGenerationFailed = true;
         }
     }
     return _success;
 }
+#endregion // __tomeUpdateFile
 
-/// @desc Makes sure TOME_LOCAL_REPO path is a valid directory
-function __verifyRepoPath(){
-    // In case the user didn't end their repo filepath with "/", add it
-    if (!string_ends_with(TOME_LOCAL_REPO_PATH, "/")){
-        var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH + "/";
+#region /// @func __tomeFileTextReadAll(filePath, [tomeInternalCall])
+/// @desc Loads a text file and reads its entire contents as a string
+/// @param {string} filePath The path to the text file to read
+/// @param {boolean} [tomeInternalCall] Whether this function is being called internally by Tome.
+function __tomeFileTextReadAll(_filePath, _tomeInternalCall = false){
+    var _fileContents = undefined;
+
+    if (file_exists(_filePath)){
+        var _fileBuffer = buffer_load(_filePath);
+        _fileContents = buffer_read(_fileBuffer, buffer_string);
+        buffer_delete(_fileBuffer);
     }else{
-        var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH; 
-    }
-    
-    if (!directory_exists(_repoPathWithAddedForwardSlash)){
-        array_push(global.__tomeData.warnings, $"The repo path: \"{_repoPathWithAddedForwardSlash}\" isn't a valid filepath, make sure the directory actually exists!");
-        global.__tomeData.docGenerationFailed = true;
-        return false;
-    }
-    
-    global.__tomeData.repoFilePath = _repoPathWithAddedForwardSlash;
-    return true;
-}
-
-/// @desc Generates the sidebar for the doc site
-function __generateSidebar(){
-    var _sideBarMarkdownString = "";
-    _sideBarMarkdownString += "-    [Home](README)\n\n---\n\n"
-    
-    var _categoriesNames = global.__tomeData.categories.names;
-    var _i = 0;
-    
-    repeat(array_length(_categoriesNames)){
-        var _currentCategory = _categoriesNames[_i];
-        
-        _sideBarMarkdownString += $"**{_currentCategory}**\n\n";			
-        
-        var _currentCategoryArray = global.__tomeData.categories.map[$ _currentCategory];
-        var _j = 0;
-        
-        repeat(array_length(_currentCategoryArray)){
-
-            var _item = _currentCategoryArray[_j];
-
-            if (_item._link != "") {
-                _sideBarMarkdownString += $"-    [{_item._title}]({_item._link})\n";
-            }
-
-            _j++;
+        if (_tomeInternalCall){
+            array_push(__TOME_DATA.warnings, $"You seem to have deleted a file {_filePath}. This file is necessary for Tome to function. Please restore this file.");
+            __TOME_DATA.docGenerationFailed = true;
+        }else{
+            array_push(__TOME_DATA.warnings, $"File at path {_filePath} does not exist. Check that the file exists and the path is correct.");
         }
-        _sideBarMarkdownString += "\n---\n\n";
-        _i++;
-    }   
+    }       
     
-    __updateFile($"{__tome_file_get_final_doc_path()}_sidebar.md", _sideBarMarkdownString); 
+    return _fileContents;
 }
+#endregion // __tomeFileTextReadAll
 
-/// @desc Generates the navbar for the doc site
-function __generateNavbar(){
-    var _navbarMarkdownString = "";
+#region /// @func __tomeFileBinReadAll(filePath, [tomeInternalCall])
+/// @desc Loads a binary file
+/// @param {string} filePath The path to the binary file to read
+/// @param {boolean} [tomeInternalCall] Whether this function is being called internally by Tome.
+function __tomeFileBinReadAll(_filePath, _tomeInternalCall = false){
+	var _fileBuffer = undefined;
 
-    var _i = 0;
+    if (file_exists(_filePath)){
+        _fileBuffer = buffer_load(_filePath);
+    }else{
+        array_push(__TOME_DATA.warnings, $"You seem to have deleted a file {_filePath}. This file is necessary for Tome to function. Please restore this file.");
+        __TOME_DATA.docGenerationFailed = true;
+    }       
 
-    repeat(array_length(global.__tomeData.navbarItems)){
-        var _currentNavbarItem = global.__tomeData.navbarItems[_i];
-        _navbarMarkdownString += string("-    [{0}]({1})\n", _currentNavbarItem._title, _currentNavbarItem._link);
-        _i++;
-    }
-        
-    __updateFile($"{__tome_file_get_final_doc_path()}_navbar.md", _navbarMarkdownString);
+	return _fileBuffer;
 }
+#endregion // __tomeFileBinReadAll
 
-function __tome_string_replace_all_ext(_string, _subStrArray, _newStr){
-    var _str = _string;
-    var _i = 0;
-
-    repeat(array_length(_subStrArray)){
-        _str = string_replace_all(_str, _subStrArray[_i], _newStr);
-        _i++;
-    }
-
-    return _str;
+/// @desc Gets the actual filepath within the repo where the .md files will be pushed
+function __tomeFileGetFinalDocPath() { 
+    return $"{__TOME_DATA.repoFilePath}{__TOME_DATA.config[$ "latestVersion"]}/";
 }
+#endregion // File I/O
 
-#endregion // Sub functions
+#region Context Parsing and Markdown Generation
 
-
-#region /// @func __tome_parse_file(filepath, [homepage])
-/// @desc Parses a file and generates markdown documentation.
-/// @param {string} filepath Path to the file.
+#region /// @func __tomeParseDocumentationFile(filepath, [homepage])
+/// @desc Parses a file and generates a context markdown struct that can then be used to generate markdown for the documentation site.
 /// @param {boolean} [Default: false] If this is the file that will parce to be used as the homepage.
 /// @returns {struct} The markdown struct that holds all data related to this file. To determine if the file was properly parsed check the success variable.
-function __tome_parse_file(_filepath, _homepage = false){
+function __tomeParseDocumentationFile(_filepath, _homepage = false){
     var _markdownData = {
         _title: _homepage ? "homepage" : undefined,
         _category: _homepage ? "homepage" : undefined,
@@ -334,7 +313,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                     _tagContent = string_trim(string_replace(_lineString, _tagType, ""));
     				
     				if (_tagType == "@pass"){
-                        if (string_lower(string_letters(_tagContent)) == "true"){
+                        if (string_lower(string_lower(_tagContent)) == "true"){
                             _passing = true;
                             _addAsText = false;
                             _tagType = "";
@@ -342,7 +321,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                             continue;
                         }
                         
-                        if (string_lower(string_letters(_tagContent)) == "tag"){
+                        if (string_lower(string_starts_with(string_lower(_tagContent), "tag"))){
                             _passing = true;
                             _addAsText = true;
                             _tagType = "";
@@ -350,7 +329,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                             continue;
                         }
                         
-                        if (string_lower(string_letters(_tagContent)) == "false"){
+                        if (string_lower(string_lower(_tagContent)) == "false"){
                             _passing = false;
                             _tagType = "";
                             _tagContent = "";
@@ -382,7 +361,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                             if (is_undefined(_markdownData._title)){
                                 _markdownData._title = _tagContent;
                             }else{
-                                array_push(global.__tomeData.warnings, $"{_filepath}: Title tag found with value {_tagContent}, but title was previously set to {_markdownData._title}. Only the first instance of title is respected.")
+                                array_push(__TOME_DATA.warnings, $"{_filepath}: Title tag found with value {_tagContent}, but title was previously set to {_markdownData._title}. Only the first instance of title is respected.")
                             }
                             _tagType = "handled";
                             break;
@@ -391,14 +370,14 @@ function __tome_parse_file(_filepath, _homepage = false){
                             if (is_undefined(_markdownData._category)){
                                 _markdownData._category = _tagContent;
                             }else{
-                                array_push(global.__tomeData.warnings, $"{_filepath}: Category tag found with value {_tagContent}, but category was previously set to {_markdownData._category}. Only the first instance of category is respected.")
+                                array_push(__TOME_DATA.warnings, $"{_filepath}: Category tag found with value {_tagContent}, but category was previously set to {_markdownData._category}. Only the first instance of category is respected.")
                             }
                             _tagType = "handled";
                             break;
                         
                         case "@pass":
-                            if (!__isContextTextOnly(_context)){
-                                _context = __newContext(_context);
+                            if (!__tomeIsContextTextOnly(_context)){
+                                _context = __tomeNewContext(_context);
                             }
                             
                             if (!_context._edited){
@@ -416,7 +395,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                     _context = _context._parentContext;
                                 }
                                 
-                                _context = __newContext(_context, false);
+                                _context = __tomeNewContext(_context, false);
                             }
                             _tagType = "handled";
                             break;
@@ -425,20 +404,31 @@ function __tome_parse_file(_filepath, _homepage = false){
                         case "@insert":
                             var _slugContent = "";    
                             
-                            for (var _slugIndex = 0; _slugIndex < array_length(global.__tomeData.slugs) && _slugContent == ""; _slugIndex++){
-                                if (_tagContent == global.__tomeData.slugs[_slugIndex][0]){
-                                    _slugContent = "\n" + global.__tomeData.slugs[_slugIndex][1] + "\n";
+                            for (var _slugIndex = 0; _slugIndex < array_length(__TOME_DATA.slugs) && _slugContent == ""; _slugIndex++){
+                                if (_tagContent == __TOME_DATA.slugs[_slugIndex][0]){
+                                    _slugContent = "\n" + __TOME_DATA.slugs[_slugIndex][1] + "\n";
                                 }
                             }
 
                             if (_slugContent == ""){
-                                array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but it appears the provided name {_tagContent} does not exist in the parsed slugs.");
+                                array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found, but it appears the provided name {_tagContent} does not exist in the parsed slugs.");
                             }else{
-                                if (__isContextFunction(_context)){
+                                if (__tomeIsContextFunction(_context)){
                                     if (_context._firstParameterFound){
                                         _context._footer += _slugContent;
                                     }else{
                                         _context._description += _slugContent;
+                                    }
+                                }else{
+                                    if (_context._contextType != __TOME_CONTEXT_TYPE.TEXT){
+                                        _context = __tomeNewContext(_context);
+                                        _context._edited = true;
+                                        _context._markdown = _slugContent;
+                                    }else{
+                                        if (!_context._edited){
+                                            _context._edited = true;
+                                        }
+                                        _context._markdown += _slugContent;
                                     }
                                 }
                             }
@@ -459,7 +449,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                             _context = _context._parentContext;
                                         }
                                     
-                                        _context = __newContext(_context);
+                                        _context = __tomeNewContext(_context);
                                         _context._contextType = __TOME_CONTEXT_TYPE.CONSTRUCTOR;
                                         _context._methods = undefined;
                                         _context._signature = undefined;
@@ -471,11 +461,11 @@ function __tome_parse_file(_filepath, _homepage = false){
                                             if (_context._parentContext != undefined){
                                                 _context = _context._parentContext;
                                             }
-                                            _context = __newContext(_context);
+                                            _context = __tomeNewContext(_context);
                                             _context._contextType = __TOME_CONTEXT_TYPE.FUNCTION;
                                         }
                                         _context._signature = _tagContent;
-                                        _parameters = __getParametersFromSignature(_context._signature);
+                                        _parameters = __tomeGetParametersFromSignature(_context._signature);
                                         break;
                                     
                                     case "@method":
@@ -484,10 +474,10 @@ function __tome_parse_file(_filepath, _homepage = false){
                                             _context._methods._parentContext = _context;
                                             _context = _context._methods;
                                         }else if (!is_undefined(_context._parentContext)){
-                                            _context = __newContext(_context);
+                                            _context = __tomeNewContext(_context);
                                         }else{
                                             _contextEntered = false;
-                                            array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but current context is not compatable. Please ensure this tag is where you intend it to be or use @func/@function instead.");
+                                            array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_rawLine} {_tagType} tag found, but the current context is not compatable. Please ensure this tag is where you intend it to be or use @func/@function instead.");
                                         }
 
                                         if (_contextEntered){ 
@@ -495,7 +485,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                             _context._contextType = __TOME_CONTEXT_TYPE.METHOD;
                                             _context._groupTag = "";
                                             _context._signature = _tagContent;
-                                            _parameters = __getParametersFromSignature(_context._signature);
+                                            _parameters = __tomeGetParametersFromSignature(_context._signature);
                                         }
                                         break;
                                     }
@@ -520,7 +510,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                         
                         case "@desc":
                         case "@description":
-                            if (__isContextFunction(_context)){
+                            if (__tomeIsContextFunction(_context)){
                                 _context._description += $"{_tagContent} ";
                             }
                             break;
@@ -533,11 +523,11 @@ function __tome_parse_file(_filepath, _homepage = false){
                             break;
 
                         case "@deprecated":
-                            if (__isContextFunction(_context)){
+                            if (__tomeIsContextFunction(_context)){
                                 _context._deprecated = true;
                                 _context._deprecatedCallout = _tagContent; 
                             }else{
-                                array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but current context is not compatable. Please ensure this tag is where you intend it to be.");
+                                array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_rawLine} {_tagType} tag found, but the current context is not compatable. Please ensure this tag is where you intend it to be.");
                             }
                             _tagType = "handled";
                             break;
@@ -547,7 +537,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                         case "@parameter":
                         case "@param":
                             
-                            if (__isContextFunction(_context)){
+                            if (__tomeIsContextFunction(_context)){
                                 _context._firstParameterFound = true;
                                 
                                 var _splitContent = string_split_ext(_tagContent, ["}"], true, 1); 
@@ -571,10 +561,10 @@ function __tome_parse_file(_filepath, _homepage = false){
                                             _desc = _splitContent[1];
                                         }
                                     }else{
-                                        array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but only a type was provided. Please ensure this tag has at least the type and a name.");                                 
+                                        array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found, but only a type was provided. Please ensure this tag has at least the type and a name.");                                 
                                     }
                                 }else{
-                                    array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but no type or description was provided. Please ensure this tag has at least the type and a name.");                                 
+                                    array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found, but no type or description was provided. Please ensure this tag has at least the type and a name.");                                 
                                 }
                                 
                                 // Remove any square brackets that the user put in the name we will add those ourselves based on if they exist here or in the signature.
@@ -598,18 +588,18 @@ function __tome_parse_file(_filepath, _homepage = false){
                                 }
                                     
                                 if (!found){
-                                    array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found with name {_preChangeName}, but no parameter was found in the function signature: {_context._signature}");
+                                    array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found with name {_preChangeName}, but no parameter was found in the function signature: {_context._signature}");
                                 }
                                 
                             }else{
-                                array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but current context is not compatable. Please ensure this tag is where you intend it to be.");
+                                array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_rawLine} {_tagType} tag found, but the current context is not compatable. Please ensure this tag is where you intend it to be.");
                             }
                             _tagType = "handled";
                             break;
                         
                         case "@return":
                         case "@returns":
-                            if (__isContextFunction(_context)){
+                            if (__tomeIsContextFunction(_context)){
                                 
                                 var _splitContent = string_split_ext(_tagContent, ["}"], true, 1);
                                 
@@ -623,7 +613,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                         _desc = _splitContent[1];
                                     }
                                 }else{
-                                    array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but no type was provided. Please ensure this tag has at least the type.");                         
+                                    array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found, but no type was provided. Please ensure this tag has at least the type.");                         
                                 }
                                 
                                 
@@ -633,7 +623,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                 
                                 
                             }else{
-                                array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found, but current context is not compatable. Please ensure this tag is where you intend it to be.");
+                                array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_rawLine} {_tagType} tag found, but the current context is not compatable. Please ensure this tag is where you intend it to be.");
                             }
                             _tagType = "handled";
                             break;
@@ -649,7 +639,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                             }
                             
                             if (_context._contextType != __TOME_CONTEXT_TYPE.CODE){
-                                _context = __newContext(_context);
+                                _context = __tomeNewContext(_context);
                             }
                             
                             if (!_context._edited){
@@ -670,7 +660,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                             }
                             
                             if (_context._contextType != __TOME_CONTEXT_TYPE.TEXT){
-                                _context = __newContext(_context);
+                                _context = __tomeNewContext(_context);
                             }
                             
                             if (!_context._edited){
@@ -689,7 +679,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                                 
                             }else{
                                 if (_tagType != "handled"){
-                                    array_push(global.__tomeData.warnings, $"Line {_lineNumber}: {_tagType} tag found. Tag type is not supported by Tome. If you are using this tag for Feather Stitch, or any other reason you can ignore this warning.");
+                                    array_push(__TOME_DATA.warnings, $"Line {_lineNumber}: {_tagType} tag found. Tag type is not supported by Tome. If you are using this tag for Feather Stitch, or any other reason you can ignore this warning.");
                                 }   
                             }
                             break;
@@ -698,7 +688,7 @@ function __tome_parse_file(_filepath, _homepage = false){
                 }else{
                     if (_addAsText){
                         // We set this to the context returned because the context may change in the helper function
-                        _context = __addTextAnyways(_context, _rawLine);
+                        _context = __tomeAddTextAnyways(_context, _rawLine);
                     }
                 }
             }
@@ -706,8 +696,8 @@ function __tome_parse_file(_filepath, _homepage = false){
         
         file_text_close(_file);
     }else{
-        array_push(global.__tomeData.warnings, $"Failed to open file {_filepath}: Check permissions of the file.");
-        global.__tomeData.docGenerationFailed = true;
+        array_push(__TOME_DATA.warnings, $"Failed to open file {_filepath}: Check permissions of the file.");
+        __TOME_DATA.docGenerationFailed = true;
         _markdownData.success = false;
     }
     
@@ -727,11 +717,11 @@ function __tome_parse_file(_filepath, _homepage = false){
                 
                 while (!is_undefined(_subContext)){
                     var _isMethod = _subContext._contextType == __TOME_CONTEXT_TYPE.METHOD;
-                    var _isText = __isContextTextOnly(_subContext);
+                    var _isText = __tomeIsContextTextOnly(_subContext);
                     
-                    if (_subContext._contextType != __TOME_CONTEXT_TYPE.METHOD && __isContextFunction(_subContext)){
+                    if (_subContext._contextType != __TOME_CONTEXT_TYPE.METHOD && __tomeIsContextFunction(_subContext)){
                         var _contextTypeString = _subContext._contextType == __TOME_CONTEXT_TYPE.CONSTRUCTOR ? "@constructor" : "@func/@function";
-                        array_push(global.__tomeData.warnings, $"You appear to have a nested {_contextTypeString} inside of a @constructor tag. This can happen if there is no clear ending to a previous context. \n To fix this issue place an @end tag at the end of your {_context._signature} constructor code. This will explicitly end the context.");
+                        array_push(__TOME_DATA.warnings, $"You appear to have a nested {_contextTypeString} inside of a @constructor tag. This can happen if there is no clear ending to a previous context. \n To fix this issue place an @end tag at the end of your {_context._signature} constructor code. This will explicitly end the context.");
                     }
                     
                     if (_isMethod || _isText){
@@ -789,9 +779,9 @@ function __tome_parse_file(_filepath, _homepage = false){
                 _i++; 
                 }
                 
-                if (is_undefined(_tail)) {
+                if (is_undefined(_tail)){
                     _sortedMethods = _contextGroupHead;
-                } else {
+                }else{
                     _tail._nextContext = _contextGroupHead;
                 }
                 
@@ -806,89 +796,96 @@ function __tome_parse_file(_filepath, _homepage = false){
     return _markdownData;
     
 }
-#endregion //__tome_parse_file
+#endregion //__tomeParseDocumentationFile
 
-#region Helper functions
-function __getParametersFromSignature(_signature){
+#region /// @func __tomeParseSlugFile(filepath)
+/// @desc Parses a slug file and adds the slugs to the __TOME_DATA.slugs array.
+/// @param {string} _filePath The path to the file
+/// @returns {boolean} If the file was sucessfully parsed or not.
+function __tomeParseSlugFile(_filePath){
+	var _file = file_text_open_read(_filePath);
+	var _inSlug = false;
+	var _markdown = "";
+	var _slugName = "";
     
-    var _splitContent = string_split(_signature, "(", true, 1);
-    var _parameters = [];
-    if (array_length(_splitContent) > 1){
+    var _success = true;
     
-       var _rawParameters = _splitContent[1];
-       
-       _rawParameters = string_replace_all(_rawParameters, "(", "");
-       _rawParameters = string_replace_all(_rawParameters, ")", "");
-       _rawParameters = string_replace_all(_rawParameters, ";", "");
-       _rawParameters = string_replace_all(_rawParameters, " ", "");
-       _rawParameters = string_replace_all(_rawParameters, "\t", "");
-       
-       _parameters = string_split(_rawParameters, ",", true);
-       
-       var _i = 0;
-       repeat(array_length(_parameters)){
-           var _name = _parameters[_i];
-           _name = string_replace(_name, "[", "");
-           _name = string_replace(_name, "]", "");
-           
-           var _optional = _name != _parameters[_i];
-           _parameters[_i] = {
-               name: _name,
-               type: "",
-               description: "",
-               optional: _optional
-           }
-           
-           _i++;
-        }   
-
-    }
+	if (_file == __TOME_FILE_OPEN_FAILED){
+        _success = false;
+        __TOME_DATA.docGenerationFailed = true;
+        array_push(__TOME_DATA.warnings, string($"Failed to open file {_filePath}, check permissions of file."))
+	}else{
+		while (!file_text_eof(_file)){
+			var _lineStringUntrimmed = file_text_readln(_file);
+		
+			if (string_starts_with(string_trim_start(_lineStringUntrimmed), "///")){
+				var _lineString = string_replace(_lineStringUntrimmed, "///", "");
+				_lineString = string_trim(_lineString);
+			
+				if (string_starts_with(_lineString, "@")){
+					var _splitString = string_split_ext(_lineString, [" ", "\t"], true);
+					var _tagType = _splitString[0];
+					var _tagContent = string_trim(string_replace(_lineString, _tagType, ""));
+			
+					switch(_tagType){
+						case "@slug":
+						case "@insert":
+							if (_inSlug){
+								if (_markdown != ""){
+									array_push(__TOME_DATA.slugs, [_slugName, _markdown]);	
+								}
+							}
+						
+							_inSlug = true;
+						
+							_slugName = _tagContent;
+							_markdown = "";
+						
+						
+							var _slugIndex = 0;
+							repeat(array_length(__TOME_DATA.slugs)){
+								if (_slugName == __TOME_DATA.slugs[_slugIndex][0]){
+									_inSlug = false;
+									break;
+								}
+								_slugIndex++;
+							}
+						    break;
+                        
+                        case "@pass":
+                            _markdown += $"{_tagContent}\n";
+                            break;
+					
+						default:
+							_markdown += $"{_lineStringUntrimmed}\n";
+						    break;
+					}
+				}else{
+					_markdown += $"{_lineStringUntrimmed}\n";	
+				}
+			}else{
+				_markdown += $"{_lineStringUntrimmed}\n";
+			}
+		}
+		
+		if (_inSlug){
+			if (_markdown != ""){
+				array_push(__TOME_DATA.slugs, [_slugName, _markdown]);	
+			}
+		}
+        
+        file_text_close(_file);
+	}
     
-    return _parameters;
+    return _success;
 }
+#endregion // __tomeParseSlugFile
 
-function __isContextFunction(_context){
-    return(_context._contextType == __TOME_CONTEXT_TYPE.CONSTRUCTOR ||
-        _context._contextType == __TOME_CONTEXT_TYPE.METHOD ||
-        _context._contextType == __TOME_CONTEXT_TYPE.FUNCTION
-    );
-}
-    
-function __isContextTextOnly(_context){
-    return(
-        _context._contextType == __TOME_CONTEXT_TYPE.TEXT ||
-        _context._contextType == __TOME_CONTEXT_TYPE.CODE
-    );
-}
-
-function __newContext(_context, _copyParent = true){
-    _context._nextContext = __TOME_NEW_CONTEXT;
-    _context._nextContext._parentContext = _copyParent ? _context._parentContext : undefined;
-    
-    return _context._nextContext;
-}
-
-function __addTextAnyways(_context, text){
-    if (!__isContextTextOnly(_context)){
-        _context = __newContext(_context);
-    }
-    
-    if (!_context._edited){
-        _context._edited = true;
-        _context._markdown = "";
-    }
-
-    _context._markdown += text;
-    
-    return _context;
-}
-#endregion // Helper functions
-
-#region /// @func __tome_generate(markdownData)
+#region /// @func __tomeGenerateFile(markdownData)
 /// @desc Takes provided context markdown data struct and converts it into a markdown string that is then saved out to a file.
 /// @param markdownData The markdown data struct that contains relavant context information.
 /// @returns {boolean} True if the markdown data was successfully converted to text and created a file. False otherwise
-function __tome_generate(_markdownData){
+function __tomeGenerateFile(_markdownData){
     
     var _context = _markdownData._context;
 
@@ -910,7 +907,7 @@ function __tome_generate(_markdownData){
 
                 case __TOME_CONTEXT_TYPE.CONSTRUCTOR:
                     if (_context._deprecated){
-                        _markdownString += $"\n!> This constructor is deprecated: {_context._deprecatedCallout}\n";
+                        _markdownString += $"\n!> **This constructor is deprecated**: {_context._deprecatedCallout}\n";
                     }
 
                     _markdownString += $"\n## `{_context._signature}` (constructor)\n";
@@ -934,7 +931,7 @@ function __tome_generate(_markdownData){
                                 _parameterType = string_replace(_parameterType, "}", "");
                             }
                             
-                            _parameterType = __tome_parse_data_type(_parameterType);
+                            _parameterType = __tomeParseDataType(_parameterType);
                             
                             _markdownTable += $"| {_name} | {_parameterType} | {_parameter.description}\n";
 
@@ -951,7 +948,7 @@ function __tome_generate(_markdownData){
                     if (is_undefined(_context._methods)){
                         _markdownString += "\n</div>\n";
                     }else{
-                        _markdownString += "\n**Methods**\n"
+                        _markdownString += "\n<div class=\"tome-methods-header\">\n\n**Methods**\n\n</div>\n"
                     }
                     
 
@@ -962,7 +959,7 @@ function __tome_generate(_markdownData){
                 case __TOME_CONTEXT_TYPE.METHOD:
                     var _type = _context._contextType == __TOME_CONTEXT_TYPE.FUNCTION ? "function" : "method";
                     if (_context._deprecated){
-                        _markdownString += $"\n!> This {_type} is deprecated: {_context._deprecatedCallout}\n";
+                        _markdownString += $"\n!> **This {_type} is deprecated**: {_context._deprecatedCallout}\n";
                     }
 
                     _type = _type == "function" ? "##" : "###";
@@ -974,7 +971,7 @@ function __tome_generate(_markdownData){
                         _returnType = string_replace(_returnType, "}", "");
                     }
                     
-                    _returnType = __tome_parse_data_type(_returnType);
+                    _returnType = __tomeParseDataType(_returnType);
                     
                     _markdownString += $"\n{_type} `{_context._signature}` → **{_returnType}**\n";
                     _markdownString += "\n<div class=\"tome-function\">\n";
@@ -997,7 +994,7 @@ function __tome_generate(_markdownData){
                                 _parameterType = string_replace(_parameterType, "}", "");
                             }
                             
-                            _parameterType = __tome_parse_data_type(_parameterType);
+                            _parameterType = __tomeParseDataType(_parameterType);
                             
                             _markdownTable += $"| {_name} | {_parameterType} | {_parameter.description}\n";
 
@@ -1039,187 +1036,581 @@ function __tome_generate(_markdownData){
     return (_markdownString);
 
 }
-#endregion __tome_generate
+#endregion // __tomeGenerateFile
 
-#region /// @func __tome_parse_slug(filepath)
-/// @desc Parses a markdown file and returns a struct containing the markdown text, title, and category. Unlike the script parser, this function only parses the tags @title and @category, all other text is just added to the markdown.
-/// @param {string} _filePath The path to the file
-/// @returns {boolean} If the file was sucessfully parsed or not.
-function __tome_parse_slug(_filePath){
-	var _file = file_text_open_read(_filePath);
-	var _inSlug = false;
-	var _markdown = "";
-	var _slugName = "";
+#region Helper functions
+
+#region Parser Helper Functions
+
+#region /// @func __tomeGetParametersFromSignature(signature)
+function __tomeGetParametersFromSignature(_signature){
     
-    var _success = true;
+    var _splitContent = string_split(_signature, "(", true, 1);
+    var _parameters = [];
+    if (array_length(_splitContent) > 1){
     
-	if (_file == __TOME_FILE_OPEN_FAILED) {
-        _success = false;
-        global.__tomeData.docGenerationFailed = true;
-        array_push(global.__tomeData.warnings, string($"Failed to open file {_filePath}, check permissions of file."))
-	}else{
-		while (!file_text_eof(_file)) {
-			var _lineStringUntrimmed = file_text_readln(_file);
-		
-			if (string_starts_with(string_trim_start(_lineStringUntrimmed), "///")){
-				var _lineString = string_replace(_lineStringUntrimmed, "///", "");
-				_lineString = string_trim(_lineString);
-			
-				if (string_starts_with(_lineString, "@")){
-					var _splitString = string_split_ext(_lineString, [" ", "\t"], true);
-					var _tagType = _splitString[0];
-					var _tagContent = string_trim(string_replace(_lineString, _tagType, ""));
-			
-					switch(_tagType){
-						case "@slug":
-						case "@insert":
-							if (_inSlug){
-								if (_markdown != ""){
-									array_push(global.__tomeData.slugs, [_slugName, _markdown]);	
-								}
-							}
-						
-							_inSlug = true;
-						
-							_slugName = _tagContent;
-							_markdown = "";
-						
-						
-							var _slugIndex = 0;
-							repeat(array_length(global.__tomeData.slugs)){
-								if (_slugName == global.__tomeData.slugs[_slugIndex][0]){
-									_inSlug = false;
-									break;
-								}
-								_slugIndex++;
-							}
-						    break;
-					
-						default:
-							_markdown += _lineStringUntrimmed;
-						    break;
-					}
-				}else{
-					_markdown += _lineStringUntrimmed;		
-				}
-			}else{
-				_markdown += _lineStringUntrimmed;	
-			}
-		}
-		
-		if (_inSlug){
-			if (_markdown != ""){
-				array_push(global.__tomeData.slugs, [_slugName, _markdown]);	
-			}
-		}
-        
-        file_text_close(_file);
-	}
+       var _rawParameters = _splitContent[1];
+       
+       _rawParameters = string_replace_all(_rawParameters, "(", "");
+       _rawParameters = string_replace_all(_rawParameters, ")", "");
+       _rawParameters = string_replace_all(_rawParameters, ";", "");
+       _rawParameters = string_replace_all(_rawParameters, " ", "");
+       _rawParameters = string_replace_all(_rawParameters, "\t", "");
+       
+       _parameters = string_split(_rawParameters, ",", true);
+       
+       var _i = 0;
+       repeat(array_length(_parameters)){
+           var _name = _parameters[_i];
+           _name = string_replace(_name, "[", "");
+           _name = string_replace(_name, "]", "");
+           
+           var _optional = _name != _parameters[_i];
+           _parameters[_i] = {
+               name: _name,
+               type: "",
+               description: "",
+               optional: _optional
+           }
+           
+           _i++;
+        }   
+
+    }
     
-    return _success;
+    return _parameters;
 }
-#endregion // __tome_parse_slug
+#endregion // __tomeGetParametersFromSignature
 
-/// @desc If the game is ran from the IDE, this will return the file path to the game's project file with the ending "/"
-function __tome_file_project_get_directory(){
-	var _originalPath = filename_dir(GM_project_filename) + "\\";
-	var _fixedPath = string_replace_all(_originalPath, "\\", "/");
-	
-	return string_trim(_fixedPath);
+#region /// @func __tomeIsContextFunction(_context)
+function __tomeIsContextFunction(_context){
+    return(_context._contextType == __TOME_CONTEXT_TYPE.CONSTRUCTOR ||
+        _context._contextType == __TOME_CONTEXT_TYPE.METHOD ||
+        _context._contextType == __TOME_CONTEXT_TYPE.FUNCTION
+    );
 }
+#endregion // __tomeIsContextFunction  
 
+#region /// @func __tomeIsContextTextOnly(_context)
+function __tomeIsContextTextOnly(_context){
+    return(
+        _context._contextType == __TOME_CONTEXT_TYPE.TEXT ||
+        _context._contextType == __TOME_CONTEXT_TYPE.CODE
+    );
+}
+#endregion // __tomeIsContextTextOnly
+
+#region /// @func __tomeNewContext(_context, _copyParent)
+function __tomeNewContext(_context, _copyParent = true){
+    _context._nextContext = __TOME_NEW_CONTEXT;
+    _context._nextContext._parentContext = _copyParent ? _context._parentContext : undefined;
+    
+    return _context._nextContext;
+}
+#endregion // __tomeNewContext
+
+#region /// @func __tomeAddTextAnyways(_context, text)
+function __tomeAddTextAnyways(_context, text){
+    if (!__tomeIsContextTextOnly(_context)){
+        _context = __tomeNewContext(_context);
+    }
+    
+    if (!_context._edited){
+        _context._edited = true;
+        _context._markdown = "";
+    }
+    
+    if (_context._contextType == __TOME_CONTEXT_TYPE.TEXT){
+        _context._markdown += $"{text}\n";
+    }else{
+        _context._markdown += text;
+    }
+    
+    return _context;
+}
+#endregion // __tomeAddTextAnyways
+
+#endregion // Parser Helper Functions
+
+#region Markdown Generation Helper Functions
+
+#region /// @func __tomeParseDataType(dataTypeString)
 /// @desc Replaces instances of "|" with "*or*"(colored red
-function __tome_parse_data_type(_dataTypeString){
+function __tomeParseDataType(_dataTypeString){
 	return string_replace_all(_dataTypeString, "|", "<span class=\"tome-type-separator\"> *or* </span>");
 }
+#endregion // __tomeParseDataType
 
-/// @desc Gets the actual filepath within the repo where the .md files will be pushed
-function  __tome_file_get_final_doc_path() { 
-	return $"{global.__tomeData.repoFilePath}{global.__tomeData.latestDocsVersion}/";
-}
+#endregion // Markdown Generation Helper Functions
 
-/// @desc Loads a text file and reads its entire contents as a string
-/// @param {string} filePath The path to the text file to read
-function __tome_file_text_read_all(_filePath){
+#endregion // Helper functions
 
-    var _fileContents = undefined;
+#endregion // Context Parsing and Markdown Generation
 
-    if (file_exists(_filePath)){
-        var _fileBuffer = buffer_load(_filePath);
-        _fileContents = buffer_read(_fileBuffer, buffer_string);
-        buffer_delete(_fileBuffer);
-    }else{
-        array_push(global.__tomeData.warnings, $"You seem to have deleted a file {_filePath}. This file is necessary for Tome to function. Please restore this file.");
-        global.__tomeData.docGenerationFailed = true;
-    }       
+#region CSS Functions
+
+#region /// @func __tomeCSSToStruct(cssString)
+/// @desc Parses the contents of a CSS file as a string into a struct.
+/// @param {string} _cssString The CSS file contents as a string.
+function __tomeCSSToStruct(_cssString){
+    var _rootStruct = { __order: [] };
+    var _contextStack = [_rootStruct];
+    var _token = "";
     
-    return _fileContents;
-}
-
-/// @desc Loads a binary file
-/// @param {string} filePath The path to the binary file to read
-function __tome_file_bin_read_all(_filePath){
-	var _fileBuffer = undefined;
-
-    if (file_exists(_filePath)){
-        _fileBuffer = buffer_load(_filePath);
-    }else{
-        array_push(global.__tomeData.warnings, $"You seem to have deleted a file {_filePath}. This file is necessary for Tome to function. Please restore this file.");
-        global.__tomeData.docGenerationFailed = true;
-    }       
-
-	return _fileBuffer;
-}
-
-/// @desc Updates the config file with the given property name and value
-/// @param {string} propertyName The name of the property to update
-/// @param {any} propertyValue The value to set the property to
-function __tome_file_update_config(_propertyName, _propertyValue){
-	var _configFileContents = __tome_file_text_read_all(global.__tomeData.projectDirectory +  "datafiles/Tome/config.js");
-
-    var _finalConfig = undefined;
-
-    if (_configFileContents != undefined){
-        // Remove the extra JS stuff so we can parse it as JSON
-        _configFileContents = string_replace(_configFileContents, "const config = ", "");
-        _configFileContents = string_replace_all(_configFileContents, ";", "");
-        _configFileContents = string_replace_all(_configFileContents, "\r", "\n");
-        _configFileContents = string_replace_all(_configFileContents, "\n\n", "\n");
-        _configFileContents = string_replace_all(_configFileContents, "name", "\"name\"");
-        _configFileContents = string_replace_all(_configFileContents, "description", "\"description\"");
-        _configFileContents = string_replace_all(_configFileContents, "latestVersion", "\"latestVersion\"");
-        _configFileContents = string_replace_all(_configFileContents, "otherVersions", "\"otherVersions\"");
-        _configFileContents = string_replace_all(_configFileContents, "favicon", "\"favicon\"");
-        _configFileContents = string_replace_all(_configFileContents, "themeColor", "\"themeColor\"");
-        var _configStruct = json_parse(_configFileContents);
+    var _inString = false;
+    var _openChar = "";
+    var _inComment = false;
+    var _depth = 0;
+    
+    var _length = string_length(_cssString);
+    var _i = 1;
+    
+    while (_i <= _length){
+        var _currentChar = string_char_at(_cssString, _i);
+        var _nextChar = (_i < _length) ? string_char_at(_cssString, _i + 1) : "";
         
-        //If the latest version is being updated, add the old version name to the otherVersions property
-        if (_propertyName == "latestVersion"){
-            if (_configStruct.latestVersion != _propertyValue){
-                array_push(_configStruct.otherVersions, _configStruct.latestVersion);	
+        if (!_inString){
+            if (!_inComment && _currentChar == "/" && _nextChar == "*"){
+                _inComment = true;
+                _i += 2;
+                continue;
+            }
+            if (_inComment && _currentChar == "*" && _nextChar == "/"){
+                _inComment = false;
+                _i += 2;
+                continue;
+            }
+        }
+        if (_inComment){
+            _i++;
+            continue;
+        }
+        
+
+        if (!_inComment){
+            if (!_inString && (_currentChar == "\"" || _currentChar == "'")){
+                _inString = true;
+                _openChar = _currentChar;
+                _token += _currentChar;
+                _i++;
+                continue;
+            }else if (_inString && _currentChar == _openChar){
+                // Ensure the quote isn't escaped (\")
+                var _prevChar = string_char_at(_cssString, _i - 1);
+                if (_prevChar != "\\"){
+                    _inString = false;
+                }
+                _token += _currentChar;
+                _i++;
+                continue;
             }
         }
         
-        _configStruct[$ _propertyName] = _propertyValue;
-        
-        //Now that the config is updated, let's convert it back into JS
-        var _updatedJson = json_stringify(_configStruct);
-        _updatedJson = string_replace_all(_updatedJson, "\"name\"", "    name");
-        _updatedJson = string_replace_all(_updatedJson, "\"description\"", "    description");
-        _updatedJson = string_replace_all(_updatedJson, "\"latestVersion\"", "    latestVersion");
-        _updatedJson = string_replace_all(_updatedJson, "\"otherVersions\"", "    otherVersions");
-        _updatedJson = string_replace_all(_updatedJson, "\"favicon\"", "    favicon");
-        _updatedJson = string_replace_all(_updatedJson, "\"themeColor\"", "    themeColor");
-        _updatedJson = string_replace_all(_updatedJson, ",  ", ",\n");
-        _updatedJson = string_replace_all(_updatedJson, "}", ",\n}");
-        _updatedJson = string_replace_all(_updatedJson, "{", "{\n");
-        _updatedJson = string_replace_all(_updatedJson, "\\/", "/");
-        _finalConfig = $"const config = {_updatedJson};";
-    }
-     
+        if (_inString){
+            _token += _currentChar;
+            _i++;
+            continue;
+        }
 
-    __updateFile(global.__tomeData.projectDirectory +  "datafiles/Tome/config.js", _finalConfig);
+        if (_currentChar == "("){
+            _depth++;
+            _token += _currentChar;
+            _i++;
+            continue;
+        }else if (_currentChar == ")"){
+            _depth = max(0, _depth - 1);
+            _token += _currentChar;
+            _i++;
+            continue;
+        }
+        
+        if (_depth > 0){
+            _token += _currentChar;
+            _i++;
+            continue;
+        }
+
+        if (_currentChar == "{"){
+            
+            var _selector = string_trim(_token);
+            if (_selector != ""){
+                var _currentContext = _contextStack[array_length(_contextStack) - 1];
+                
+                if (!variable_struct_exists(_currentContext, _selector)){
+                    _currentContext[$ _selector] = { __order: [] };
+                    array_push(_currentContext.__order, _selector);
+                }
+                array_push(_contextStack, _currentContext[$ _selector]);
+            }
+            _token = "";
+            
+        }else if (_currentChar == "}"){
+
+            var _trailingProperty = string_trim(_token);
+            if (_trailingProperty != ""){
+                var _colonPosition = string_pos(":", _trailingProperty);
+                if (_colonPosition > 0){
+                    var _property = string_trim(string_copy(_trailingProperty, 1, _colonPosition - 1));
+                    var _value = string_trim(string_delete(_trailingProperty, 1, _colonPosition));
+                    var _currentContext = _contextStack[array_length(_contextStack) - 1];
+                    
+                    if (!variable_struct_exists(_currentContext, _property)){
+                        array_push(_currentContext.__order, _property);
+                    }
+                    
+                    _currentContext[$ _property] = _value;
+                }
+            }
+            
+            // Pop the stack to return to the parent scope
+            if (array_length(_contextStack) > 1){
+                array_pop(_contextStack);
+            }
+            _token = "";
+            
+        }else if (_currentChar == ";"){
+            // The token holds a full property-value pair
+            var _propertyDefinition = string_trim(_token);
+            if (_propertyDefinition != ""){
+                // Split at the first colon to protect colons in the value (like URLs)
+                var _colonPosition = string_pos(":", _propertyDefinition);
+                if (_colonPosition > 0){
+                    var _property = string_trim(string_copy(_propertyDefinition, 1, _colonPosition - 1));
+                    var _value = string_trim(string_delete(_propertyDefinition, 1, _colonPosition));
+                    var _currentContext = _contextStack[array_length(_contextStack) - 1];
+                    
+                    if (!variable_struct_exists(_currentContext, _property)){
+                        array_push(_currentContext.__order, _property);
+                    }
+                    
+                    _currentContext[$ _property] = _value;
+                }
+            }
+            _token = "";
+            
+        }else{
+            // Ignore newlines/tabs outside of strings, converting them to single spaces to keep the buffer clean
+            if (_currentChar != "\n" && _currentChar != "\r" && _currentChar != "\t"){
+                _token += _currentChar;
+            }else if (_token != "" && string_char_at(_token, string_length(_token)) != " "){
+                 _token += " "; 
+            }
+        }
+        
+        _i++;
+    }
+    
+    return _rootStruct;
 }
+#endregion // __tomeCSSToStruct
+
+#region /// @func __tomeStructToCSS(cssStruct, [indentation])
+/// @desc Converts a GameMaker struct into a formatted, nested CSS string, preserving order.
+function __tomeStructToCSS(_cssStruct, _indent = ""){
+    var _orderedKeys = [];
+    
+    if (variable_struct_exists(_cssStruct, "__order")){
+        array_copy(_orderedKeys, 0, _cssStruct.__order, 0, array_length(_cssStruct.__order));
+    }
+    
+    var _allKeys = variable_struct_get_names(_cssStruct);
+    var _i = 0;
+    repeat(array_length(_allKeys)){
+        var _k = _allKeys[_i];
+        if (_k != "__order" && !array_contains(_orderedKeys, _k)){
+            array_push(_orderedKeys, _k); 
+        }
+        _i++;
+    }
+    
+    var _propertyString = "";
+    var _nestedString = "";
+    
+    _i = 0;
+    repeat(array_length(_orderedKeys)){
+        var _key = _orderedKeys[_i];
+        var _value = _cssStruct[$ _key];
+        
+        if (is_struct(_value)){
+            _nestedString += $"{_indent}{_key}{"\{"}\n";
+            _nestedString += __tomeStructToCSS(_value, _indent + "\t");
+            _nestedString += $"{_indent}{"\}"}\n\n";
+        }else{
+            _propertyString += $"{_indent}{_key}: {_value};\n";
+        }
+        
+        _i++;
+    }
+    
+    var _cssString = _propertyString;
+    
+    if (_propertyString != "" && _nestedString != ""){
+        _cssString += "\n";
+    }
+    
+    _cssString += _nestedString;
+    
+    return _indent == "" ? string_trim_end(_cssString) : _cssString;
+}
+#endregion // __tomeStructToCSS
+
+#region /// @func __tomeMergeCSSStructs(targetStruct, sourceStruct)
+/// @desc Recursively merges a source CSS struct into a target CSS struct, maintaining cascade order.
+function __tomeMergeCSSStructs(_target, _source){
+    var _sourceKeys = [];
+    
+    if (variable_struct_exists(_source, "__order")){
+        array_copy(_sourceKeys, 0, _source.__order, 0, array_length(_source.__order));
+    }
+    
+    var _allSourceKeys = variable_struct_get_names(_source);
+    var _i = 0;
+    repeat(array_length(_allSourceKeys)){
+        var _k = _allSourceKeys[_i];
+        if (_k != "__order" && !array_contains(_sourceKeys, _k)){
+            array_push(_sourceKeys, _k);
+        }
+        _i++;
+    }
+
+    if (!variable_struct_exists(_target, "__order")){
+        _target.__order = [];
+    }
+
+    _i = 0;
+    repeat(array_length(_sourceKeys)){
+        var _key = _sourceKeys[_i];
+        var _sourceVal = _source[$ _key];
+        
+        if (is_struct(_sourceVal)){
+            if (!variable_struct_exists(_target, _key) || !is_struct(_target[$ _key])){
+                _target[$ _key] = { __order: [] };
+                
+                if (!array_contains(_target.__order, _key)){
+                    array_push(_target.__order, _key);
+                }
+            }
+            __tomeMergeCSSStructs(_target[$ _key], _sourceVal);
+            
+        }else{
+            _target[$ _key] = _sourceVal;
+            
+            if (!array_contains(_target.__order, _key)){
+                array_push(_target.__order, _key);
+            }
+        }
+        
+        _i++;
+    }
+}
+#endregion // __tomeMergeCSSStructs
+
+#endregion // CSS Functions
+
+#region Config Functions
+
+#region /// @func __tomeParseConfig(filePath)
+/// @desc Reads the config.js file and parses it into a GameMaker struct.
+/// @param {string} _filePath The full path to the config.js file.
+/// @returns {struct} The parsed configuration struct.
+function __tomeParseConfig(_filePath){
+    var _configString = __tomeFileTextReadAll(_filePath, true);
+    var _configStruct = {};
+    
+    if (_configString != undefined){
+        _configString = string_replace(_configString, "const config = ", "");
+        _configString = string_replace_all(_configString, ";", "");
+        _configStruct = json_parse(_configString);
+    }
+    
+    return _configStruct;
+}
+#endregion // __tomeParseConfig
+
+#region /// @func __tomeUpdateConfigProperty(propertyName, propertyValue)
+/// @desc Updates a property in the in-memory config struct.
+/// @param {string} _propertyName The name of the property to update
+/// @param {any} _propertyValue The value to set the property to
+function __tomeUpdateConfigProperty(_propertyName, _propertyValue){
+    __TOME_DATA.config[$ _propertyName] = _propertyValue;
+}
+#endregion // __tomeUpdateConfigProperty
+
+#region /// @func __tomeGenerateConfigString()
+/// @desc Converts the in-memory config struct back into a formatted config.js string.
+function __tomeGenerateConfigString(){
+    var _json = json_stringify(__TOME_DATA.config);
+    var _formatted = "";
+    
+    var _arrayDepth = 0;
+    var _inString = false;
+    var _len = string_length(_json);
+    
+    for (var _i = 1; _i <= _len; _i++){
+        var _currentChar = string_char_at(_json, _i);
+        
+        if (_currentChar == "\""){
+            var _previousChar = string_char_at(_json, _i - 1);
+            if (_previousChar != "\\"){
+                _inString = !_inString;
+            }
+        }
+        
+        if (!_inString){
+            if (_currentChar == "["){
+                _arrayDepth++;
+            }else if (_currentChar == "]"){
+                _arrayDepth = max(0, _arrayDepth - 1);
+            }
+            if (_currentChar == "{"){
+                _formatted += "{\n\t";
+            }else if (_currentChar == "}"){
+                _formatted += "\n}";
+            }else if (_currentChar == ","){
+                _formatted += _arrayDepth > 0 ? ", " : ",\n\t";
+            }else if (_currentChar == ":"){
+                _formatted += ": ";
+            }else{
+                _formatted += _currentChar;
+            }
+        }else{
+            _formatted += _currentChar;
+        }
+    }
+    
+    // GameMaker escapes forward slashes in URLs, so we revert them
+    _formatted = string_replace_all(_formatted, "\\/", "/");
+    
+    return $"const config = {_formatted};";
+}
+#endregion // __tomeGenerateConfigString
+
+#endregion // Config functions
+
+#region Site Structure Functions
+
+#region /// @func __tomeProcessDocsItems()
+/// @desc Sort through site struct if multiple entries contain the same category and title group them together.
+function __tomeProcessDocsItems(){
+    
+    array_reverse_ext(__TOME_DATA.docsPageItems);
+    
+    /// @type {any}
+    var _item = array_pop(__TOME_DATA.docsPageItems);
+    var _finalDocPath = __tomeFileGetFinalDocPath();
+    var _illegalFilePathChars = [" ", "\\", "/", ":", "*", "?", "\"", "<", ">", "|"];
+    while (_item != undefined){
+        
+        if (_item._sidebarType == __TOME_SIDEBAR_TYPE.FILE){
+
+            var _fileCategoryDashed = string_lower(__tomeStringReplaceAllExt(_item._category, _illegalFilePathChars, "-"));
+            var _fileTitleDashed = string_lower(__tomeStringReplaceAllExt(_item._title, _illegalFilePathChars, "-"));
+            
+            var _filePath = $"{_fileCategoryDashed}-{_fileTitleDashed}.md";
+
+            if (_filePath == "homepage-homepage.md"){
+                _filePath = "README.md";
+            }
+
+            _item._link = _filePath;
+
+            _filePath = $"{_finalDocPath}{_filePath}"
+
+            __tomeUpdateFile(_filePath, __tomeGenerateFile(_item));
+        }
+
+        if (_item._category != "homepage"){
+            if (!array_contains(__TOME_DATA.categories.names, _item._category)){
+                array_push(__TOME_DATA.categories.names, _item._category);
+                variable_struct_set(__TOME_DATA.categories.map, $"{_item._category}", [_item]);
+            }else{
+                array_push(variable_struct_get(__TOME_DATA.categories.map, $"{_item._category}"), _item);
+            }
+        }
+        
+        _item = array_pop(__TOME_DATA.docsPageItems);
+        
+    }
+    
+}
+#endregion // __tomeProcessDocsItems
+
+#region /// @func __tomeUpdateDocsifyFiles()
+/// @desc Updates basic docsify files: Config.js, index.html, codeTheme.css, customTheme.css, docsIcon.png, and .nojekyll
+function __tomeUpdateDocsifyFiles(){
+    __tomeTrace("Updating Docsify files", true, 2, false);
+
+    var _repoFilePath = __TOME_DATA.repoFilePath;
+    
+    __tomeUpdateFile($"{_repoFilePath}config.js", __tomeGenerateConfigString());
+    
+    __tomeUpdateFile($"{_repoFilePath}index.html", __tomeFileTextReadAll(__TOME_DATA.projectDirectory +  "datafiles/Tome/index.html", true));
+
+    __tomeUpdateFile($"{_repoFilePath}assets/codeTheme.css", __tomeFileTextReadAll(__TOME_DATA.projectDirectory +  "datafiles/Tome/assets/codeTheme.css", true));
+
+    __tomeUpdateFile($"{_repoFilePath}assets/customTheme.css", __tomeStructToCSS(__TOME_DATA.customCSS));
+    
+    __tomeUpdateFile($"{_repoFilePath}assets/docsIcon.png", __tomeFileBinReadAll(__TOME_DATA.projectDirectory + "datafiles/Tome/assets/docsIcon.png", true));
+    
+    __tomeUpdateFile($"{_repoFilePath}.nojekyll", "");
+}
+#endregion // __tomeUpdateDocsifyFiles
+
+#region /// @func __tomeGenerateSidebar()
+/// @desc Generates the sidebar for the doc site
+function __tomeGenerateSidebar(){
+    var _sideBarMarkdownString = "";
+    _sideBarMarkdownString += "-    [Home](README)\n\n---\n\n"
+    
+    var _categoriesNames = __TOME_DATA.categories.names;
+    var _i = 0;
+    
+    repeat(array_length(_categoriesNames)){
+        var _currentCategory = _categoriesNames[_i];
+        
+        _sideBarMarkdownString += $"**{_currentCategory}**\n\n";			
+        
+        var _currentCategoryArray = __TOME_DATA.categories.map[$ _currentCategory];
+        var _j = 0;
+        
+        repeat(array_length(_currentCategoryArray)){
+
+            var _item = _currentCategoryArray[_j];
+
+            if (_item._link != ""){
+                _sideBarMarkdownString += $"-    [{_item._title}]({_item._link})\n";
+            }
+
+            _j++;
+        }
+        _sideBarMarkdownString += "\n---\n\n";
+        _i++;
+    }   
+    
+    __tomeUpdateFile($"{__tomeFileGetFinalDocPath()}_sidebar.md", _sideBarMarkdownString); 
+}
+#endregion // __tomeGenerateSidebar
+
+#region /// @func __tomeGenerateNavbar()
+/// @desc Generates the navbar for the doc site
+function __tomeGenerateNavbar(){
+    var _navbarMarkdownString = "";
+
+    var _i = 0;
+
+    repeat(array_length(__TOME_DATA.navbarItems)){
+        var _currentNavbarItem = __TOME_DATA.navbarItems[_i];
+        _navbarMarkdownString += string("-    [{0}]({1})\n", _currentNavbarItem._title, _currentNavbarItem._link);
+        _i++;
+    }
+        
+    __tomeUpdateFile($"{__tomeFileGetFinalDocPath()}_navbar.md", _navbarMarkdownString);
+}
+#endregion // __tomeGenerateNavbar
+
+#endregion // Site Structure Functions
+
+#region Utility functions
 
 #region /// @func __tomeTrace(text, [verboseOnly], [indentation], [includePrefix])
 /// @desc Outputs a message to the console prefixed with "Tome:"
@@ -1243,26 +1634,63 @@ function __tomeTrace(_text, _verboseOnly = false, _indentation = 0, _includePref
 }
 #endregion // __tomeTrace
 
-#region /// @func __tome_setup_data()
-/// @desc Initializes the global struct that holds Tome's data(if it doesn't already exist)
-function __tome_setup_data(){
-    if (!variable_global_exists("__tomeData")){
-        global.__tomeData = {
-            repoFilePath: "",
-            latestDocsVersion: "Latest-Version",
-            categories: {
-                names: [],
-                map: {}
-            },
-            slugs: [],
-            docsPageItems: [],
-            parsedSlugPaths: [],
-            parsedFilePaths: [],
-            navbarItems: [],
-            warnings: [],
-            docGenerationFailed: false,
-            projectDirectory: __tome_file_project_get_directory()
-        };
+#region /// @func __tomeStringReplaceAllExt(string, subStrArray, newStr)
+/// @desc Replaces all instances of multiple substrings within a string with a new string.
+/// @param {string} string The original string to perform replacements on
+/// @param {array} subStrArray An array of substrings to replace within the original string
+/// @param {string} newStr The string to replace the substrings with
+function __tomeStringReplaceAllExt(_string, _subStrArray, _newStr){
+    var _str = _string;
+    var _i = 0;
+
+    repeat(array_length(_subStrArray)){
+        _str = string_replace_all(_str, _subStrArray[_i], _newStr);
+        _i++;
     }
+
+    return _str;
 }
-#endregion // __tome_setup_data
+#endregion // __tomeStringReplaceAllExt
+
+#endregion // Utility functions
+
+#region Initialization
+if (__TOME_CAN_RUN){
+    //Create the tome time source that will begin object to start tome generating
+	global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, function(){
+        __tomeTrace($"Tome Enabled, Version: {__TOME_VERSION}");
+
+        __tomeSetupData();
+
+        __tomeTrace("Generating docs...", false, 1, true);
+        
+        tomeSetup();
+        
+        __tomeGenerateDocs();
+        
+        var _warningsFound = array_length(global.__tomeData.warnings) > 0;
+        
+        if (_warningsFound){
+            __tomeTrace("Warnings:", false, 1, true);
+            
+            var _i = 0;
+            
+            repeat(array_length(global.__tomeData.warnings)){
+                var _currentWarning = global.__tomeData.warnings[_i];
+                
+                __tomeTrace(_currentWarning, false, 2, false);
+                
+                _i++;
+            }
+        }
+        
+        
+        var _finalMessage = global.__tomeData.docGenerationFailed ? "Doc generation failed: Please see warnings above.!\n" : "All docs generated!\n";
+        __tomeTrace(_finalMessage);
+        
+        time_source_destroy(global.__tomeInitTimeSource);
+	}, [], 1);
+
+	time_source_start(global.__tomeInitTimeSource);
+}
+#endregion // Initialization

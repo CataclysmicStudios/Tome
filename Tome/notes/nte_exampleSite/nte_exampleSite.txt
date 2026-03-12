@@ -7,51 +7,76 @@ Setting up your documentation site is relatively simple. All of your code will b
 Here is an example of how the site for our game Augury is set up.
 
 ```gml
-// Adding scripts to parse
-tome_add_script("scr_unitArray");
-tome_add_script("scr_unitNames");
-tome_add_script("scr_itemStackClass");
-tome_add_script("scr_itemDropTableClass");
-tome_add_script("scr_itemFunctions");
-tome_add_script("scr_itemInventoryClass");
-tome_add_script("scr_markdown");
-tome_add_script("scr_keybinds");
-tome_add_script("scr_fileSystem");
-tome_add_script("scr_serialization");
-tome_add_script("scr_arraysFunctions");
-tome_add_script("scr_fearSystem");
-tome_add_script("scr_discordLogging");
-tome_add_script("scr_strings");
-tome_add_script("scr_binaryFiles");
-tome_add_script("scr_miscUnitScripts");
-tome_add_script("scr_structs");
-tome_add_script("scr_deltaTime");
-tome_add_script("scr_mathMisc");
 
-//Adding some links to the sidebar
-tome_add_to_sidebar("Scribble", "https://www.jujuadams.com/Scribble/", "Libraries we use");
-tome_add_to_sidebar("Dynamo", "https://www.jujuadams.com/Dynamo/", "Libraries we use");
-tome_add_to_sidebar("SNAP", "https://www.jujuadams.com/SNAP/", "Libraries we use");
-tome_add_to_sidebar("SimThreads", "https://github.com/tabularelf/SimThreads", "Libraries we use");
-tome_add_to_sidebar("Collage", "https://tabularelf.com/docs/collage", "Libraries we use");
+/*/
+ * Set your site info here!
+/*/
 
-//Setting the homepage 
-tome_set_homepage_from_note("docsHomePage");
-
-tome_set_site_description("This site documents the many systems of Augury");
+//Set your site name first as this is what triggers tome to setup all data related to the site
 tome_set_site_name("Augury");
+
+//Then set the rest of your data in whatever order you see fit.
+tome_set_site_description("This site documents the many systems of Augury");
 tome_set_site_latest_version("Augury");
+
+
+
+/*/
+ * Set any theme data here!
+ * Check out the tome docs as there is so much more that can be customized now.
+/*/ 
 tome_set_site_theme_color("#DDDDFF");
+
+
+/*/
+ * Add files and links you wish to make up the docs page sidebar here!
+/*/	
+
+
+tome_add("scr_unitArray");
+tome_add("scr_unitNames");
+tome_add("scr_itemStackClass");
+tome_add("scr_itemDropTableClass");
+tome_add("scr_itemFunctions");
+tome_add("scr_itemInventoryClass");
+tome_add("scr_markdown");
+tome_add("scr_keybinds");
+tome_add("scr_fileSystem");
+tome_add("scr_serialization");
+tome_add("scr_arraysFunctions");
+tome_add("scr_fearSystem");
+tome_add("scr_discordLogging");
+tome_add("scr_strings");
+tome_add("scr_binaryFiles");
+tome_add("scr_miscUnitScripts");
+tome_add("scr_structs");
+tome_add("scr_deltaTime");
+tome_add("scr_mathMisc");
+
+tome_set_homepage("docsHomePage");
+
+tome_add_sidebar_link("Scribble", "https://www.jujuadams.com/Scribble/", "Libraries we use");
+tome_add_sidebar_link("Dynamo", "https://www.jujuadams.com/Dynamo/", "Libraries we use");
+tome_add_sidebar_link("SNAP", "https://www.jujuadams.com/SNAP/", "Libraries we use");
+tome_add_sidebar_link("SimThreads", "https://github.com/tabularelf/SimThreads", "Libraries we use");
+tome_add_sidebar_link("Collage", "https://tabularelf.com/docs/collage", "Libraries we use");
+
+
+/*/
+ * Add any information you want added to the navbar here!
+/*/ 
+
 ```
 
 ## Breakdown
-?> The order in which you call these functions does not matter, this is just how I've arranged them
+?> For the most part the order in which you call these functions does not matter, this is just how I've arranged them. The exception to this rule is tome_set_site_name(). This is the trigger for Tome to set up all of it's tracked data. Placing anything before this will result in unexpected (potentially fatal crash) behavior.
 
-- `tome_add_script` points to a script that we have setup with at least the `@title` tag
-- `tome_add_to_sidebar` Adds a link in the sidebar of the site
-- `tome_set_homepage_from_note` Sets what your site's homepage will be, and is required!
+- `tome_add` points to a script, note, or external file that we have setup with at least the `@title` and `@category` tag.
+- `tome_add_raw` points to a note or external file that only contains markdown. This markdown is added to the site as is.
+- `tome_add_sidebar_link` Adds a link in the sidebar of the site
+- `tome_set_homepage` Sets what your site's homepage will be, and is required!
 - `tome_set_site_name` Sets what name will displayed in your browser's tab
 - `tome_set_site_latest_version` Sets the latest version, which will be the default verson of your docs that will be shown when the site is loaded, changing this will add a new version in the version selecter and the older versions will stay unchanged as they were before this was changed.
 - `tome_set_site_theme_color` Sets the accent color of your site(More custimization options are planned for the future.)
 
-Find more info on formatting your scripts for Tome [here](Formatting-Scripts)
+Find more info on formatting your scripts for Tome [here](api-reference-primary-functions)

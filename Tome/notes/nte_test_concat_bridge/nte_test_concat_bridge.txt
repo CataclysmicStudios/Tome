@@ -1,0 +1,24 @@
+## Intermediate Data Validation
+
+Before the data models defined in Part 1 can be serialized by the file operations in Part 2, the raw data must pass through a strict validation pipeline. 
+
+This section is pure, raw Markdown added via `tome_add_raw()`. Because it shares the exact same title and category as the GML scripts, Tome seamlessly stitches this Markdown directly between the generated JSDoc content!
+
+### Validation Steps
+
+1. **Type Checking:** Ensures all struct variables match their expected GameMaker data types.
+2. **Sanitization:** Strips out invalid or malicious characters from string inputs, such as player usernames.
+3. **Bounds Checking:** Verifies that numerical values (like levels or inventory counts) do not exceed predefined engine maximums.
+
+Here is an example of what a sanitized JSON payload might look like right before it hits the save functions:
+
+```json
+{
+  "username": "Hero_123",
+  "level": 42,
+  "inventory": ["sword_01", "potion_hp"],
+  "playtime": 3600
+}
+```
+
+Once validation is complete, the validated payload is passed down to the storage and file operation functions detailed below.

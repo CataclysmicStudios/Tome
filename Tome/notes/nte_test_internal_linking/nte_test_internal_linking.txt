@@ -1,0 +1,25 @@
+# Internal Linking Guide
+
+This file serves as a placeholder to test Tome's internal linking capabilities. Because Tome generates a single-page application using Docsify, linking between different documentation pages requires a specific URL structure.
+
+## Link Resolution
+
+When you want to reference another page within the documentation, you must format the markdown link using the sanitized `category-title` format. All spaces and file system reserved characters are replaced with a single hyphen (`-`).
+
+### Examples in Action
+
+* **Link to a Massive Constructor:** To view the large buffer system we built earlier, visit the [Massive Node](object-orientation-massive-node) page.
+
+* **Link to Concatenated Pages:** To see how multiple scripts merge into one continuous document, check out the [Merged Page](concatenation-merged-page).
+
+* **Link to Constants:** Review the system limits and error codes at the [Global Definitions](constants---data-global-definitions) page. 
+
+### Markdown Syntax
+
+Here is how the raw markdown looks for the links above, using the sanitized routing structure:
+
+```markdown
+[Massive Node](object-orientation-massive-node)
+[Merged Page](concatenation-merged-page)
+[Global Definitions](constants---data-global-definitions)
+```

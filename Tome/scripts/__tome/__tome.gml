@@ -60,7 +60,7 @@ function tome_add(_file, _slugs = undefined){
                                 _slugParseSuccess = false;
                                 exit;
                             }else{
-                                _slugParseSuccess = __tome_parse_slug(_slugPath);
+                                _slugParseSuccess = __tomeParseSlugFile(_slugPath);
                                 
                                 if (_slugParseSuccess){
                                     array_push(global.__tomeData.parsedSlugPaths, _slugPath);
@@ -79,7 +79,7 @@ function tome_add(_file, _slugs = undefined){
                 /// @type {Any}
                 var _markdownData = undefined;
                 if (_success){
-                    _markdownData = __tome_parse_file(_filePath);
+                    _markdownData = __tomeParseDocumentationFile(_filePath);
                     
                     _fileParseSuccess = _markdownData.success;
                     
@@ -153,10 +153,16 @@ function tome_add_raw(_file, _title, _category){
         exit;
     }
    
-    if (!array_contains(global.__tomeData.parsedFilePaths, _file)){
-        if (file_exists(_file)){
+    var _filePath = $"{global.__tomeData.projectDirectory}notes/{_file}/{_file}.txt";
+    
+    if (!file_exists(_filePath)){
+        _filePath = _file;
+    }
+    
+    if (!array_contains(global.__tomeData.parsedFilePaths, _filePath)){
+        if (file_exists(_filePath)){
 
-            var _markdownString = __tome_file_text_read_all(_file);
+            var _markdownString = __tomeFileTextReadAll(_filePath);
             
             var _context = {
                 _contextType: __TOME_CONTEXT_TYPE.TEXT,
@@ -202,7 +208,7 @@ function tome_add_raw(_file, _title, _category){
 
                 array_push(global.__tomeData.docsPageItems, _markdownData);
             }
-            array_push(global.__tomeData.parsedFilePaths, _file);
+            array_push(global.__tomeData.parsedFilePaths, _filePath);
 
 
         }else{
@@ -385,7 +391,7 @@ function tome_set_homepage(_file, _raw = false){
         tome_add_raw(_file, "homepage", "homepage");
     }else{
         /// @type {any}
-        var _markdownData = __tome_parse_file(_file, true);
+        var _markdownData = __tomeParseDocumentationFile(_file, true);
     
         if (!_markdownData.success){
             array_push(global.__tomeData.warnings, $"tome_set_homepage: {_file} Something went wrong during parsing. Please check warnings above for more information.");
@@ -430,8 +436,7 @@ function tome_set_homepage_from_note(_noteName){
 /// @desc Sets the name of your site
 /// @param {string} name The name of the site
 function tome_set_site_name(_name){
-    __tome_setup_data()
-	__tome_file_update_config("name", _name);
+	__tomeUpdateConfigProperty("name", _name);
 }
 #endregion // tome_set_site_name
 
@@ -439,7 +444,7 @@ function tome_set_site_name(_name){
 /// @desc Sets the description of your site
 /// @param {string} desc The description of the site
 function tome_set_site_description(_desc){
-	__tome_file_update_config("description", _desc);
+	__tomeUpdateConfigProperty("description", _desc);
 }
 #endregion // tome_set_site_description
 
@@ -447,7 +452,7 @@ function tome_set_site_description(_desc){
 /// @desc Sets the theme color of your site
 /// @param {string} color The theme color of the site
 function tome_set_site_theme_color(_color){
-	__tome_file_update_config("themeColor", _color);
+	__tomeUpdateConfigProperty("themeColor", _color);
 }
 #endregion // tome_set_site_theme_color
 
@@ -461,8 +466,7 @@ function tome_set_site_latest_version(_versionName){
     }
 
 	var _fixedVersionName = string_replace_all(_versionName, " ", "-");
-	global.__tomeData.latestDocsVersion = _fixedVersionName;
-	__tome_file_update_config("latestVersion", _fixedVersionName);
+	__tomeUpdateConfigProperty("latestVersion", _fixedVersionName);
 }
 #endregion // tome_set_site_latest_versions
 
@@ -480,8 +484,44 @@ function tome_set_site_older_versions(_versions){
         _fixedVersions = [ $"{_versions}" ];
     }
 
-	__tome_file_update_config("otherVersions", _fixedVersions);
+	__tomeUpdateConfigProperty("otherVersions", _fixedVersions);
 }
 #endregion // tome_set_sige_older_versions
+
+#region /// @func tome_edit_site_custom_css(css_data)
+/// @desc Adds or overrides custom CSS for the documentation site.
+/// @param {string|struct} _css_data A raw CSS string or a nested struct containing CSS rules.
+function tome_edit_site_custom_css(_css_data) {
+    var _parsedSource = {};
+
+    if (is_string(_css_data)) {
+        _parsedSource = __tomeCSSToStruct(_css_data);
+    } else if (is_struct(_css_data)) {
+        _parsedSource = _css_data;
+    } else {
+        array_push(global.__tomeData.warnings, "tome_edit_site_custom_css(): Provided CSS data must be a string or a struct.");
+        return;
+    }
+
+    __tomeMergeCSSStructs(global.__tomeData.customCSS, _parsedSource);
+}
+#endregion // tome_edit_site_custom_css
+
+/// @func tome_color_to_hex(color_integer)
+/// @desc Converts a GameMaker color (BGR) into a CSS-ready "#RRGGBB" hex string.
+function tome_color_to_css_hex(_col) {
+    var _r = color_get_red(_col);
+    var _g = color_get_green(_col);
+    var _b = color_get_blue(_col);
+    
+    var _chars = "0123456789ABCDEF";
+    
+    // Convert each channel to a 2-digit hex string
+    var _hex_r = string_char_at(_chars, (_r >> 4) + 1) + string_char_at(_chars, (_r & 15) + 1);
+    var _hex_g = string_char_at(_chars, (_g >> 4) + 1) + string_char_at(_chars, (_g & 15) + 1);
+    var _hex_b = string_char_at(_chars, (_b >> 4) + 1) + string_char_at(_chars, (_b & 15) + 1);
+    
+    return "#" + _hex_r + _hex_g + _hex_b;
+}
 
 #endregion // Site data and customization

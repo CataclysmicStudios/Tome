@@ -2,7 +2,7 @@
 #macro TOME_ENABLED true
 
 // Where your docs will be placed
-#macro TOME_LOCAL_REPO_PATH "E:/GitHub/CataSite/Tome-Docs/"
+#macro TOME_LOCAL_REPO_PATH "E:/TomeTest/Test1"
 
 // Show extended debug information in the console when generating your docs
 #macro TOME_VERBOSE true
@@ -28,4 +28,5 @@
 /*/
 #macro TOME_METHOD_GROUP_DEPTH TOME_METHOD_GROUP_DEPTH_HEADER.H2
 
-#macro TOME_DISPLAY_TYPE_IN_BRACKETS false
+#macro TOME_DISPLAY_TYPE_IN_BRACKETS true
+

@@ -1,0 +1,14 @@
+# Tome Stress Test Suite
+
+Welcome to the official homepage of the Tome parsing test environment!
+
+Because this page is loaded using the `raw` argument, Tome's parser completely ignores any JSDoc tags (like `@title` or `@category`) and injects this file exactly as it is written. 
+
+## What This Suite Tests
+* **Deep Nesting:** Constructors with a massive amount of methods.
+* **Context Switching:** Breaking out of constructors using tags and returning to standard functions.
+* **Concatenation:** Merging multiple files into a single sidebar page by matching their category and title.
+* **Slugs:** Injecting reusable markdown blocks directly into GML scripts.
+* **Raw Markdown:** You are looking at it!
+
+Use the sidebar to navigate through the various generated edge cases.

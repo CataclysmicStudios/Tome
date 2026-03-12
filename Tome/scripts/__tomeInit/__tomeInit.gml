@@ -1,14 +1,17 @@
 //Create the tome time source that will begin object to start tome generating
+/* 
 if (__TOME_CAN_RUN){
 
-	global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, __tome_init, [], 1);
-    
-	function __tome_init(){
-        __tomeTrace($"Tome Enabled, Version: {TOME_VERSION}");
+	global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, function(){
+        __tomeTrace($"Tome Enabled, Version: {__TOME_VERSION}");
+
+        __tomeSetupData();
 
         __tomeTrace("Generating docs...", false, 1, true);
         
-        __tome_generate_docs();
+        tomeSetup();
+        
+        __tomeGenerateDocs();
         
         var _warningsFound = array_length(global.__tomeData.warnings) > 0;
         
@@ -31,7 +34,7 @@ if (__TOME_CAN_RUN){
         __tomeTrace(_finalMessage);
         
         time_source_destroy(global.__tomeInitTimeSource);
-	}
+	}, [], 1);
 
 	time_source_start(global.__tomeInitTimeSource);
 }

@@ -3,7 +3,7 @@ You can create a note that holds multiple slugs such as
 
 
 ```
-/// @ignore /// @slug some-slug
+/// @pass /// @slug some-slug
 Examples:
 
 '''
@@ -12,7 +12,7 @@ foo(bar);
 foo(bar, fib);
 '''
 
-/// @ignore /// @slug some-other-slug
+/// @pass /// @slug some-other-slug
 Examples:
 
 '''
@@ -26,7 +26,7 @@ boo(far, bif);
 ```gml
 /// @function someFunction(someParameter)
 /// @desc A function that does something
-/// @ignore /// @slug some-slug
+/// @pass /// @slug some-slug
 /// @param {any} someParam A parameter that changes the behavior of the function
 /// @returns {undefined}
 ```

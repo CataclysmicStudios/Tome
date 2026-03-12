@@ -1,0 +1,60 @@
+/// @slug example-usage-box
+/// @pass `/// @slug example-usage-box`
+
+**Note:** This is a reusable example box injected via a slug.
+```gml
+var _instance = new MassiveConstructor(64);
+_instance.initialize();
+```
+
+/// @slug warning-callout
+/// @pass `/// @slug warning-callout`
+
+!> **CRITICAL:** Do not call this function before `tome_set_site_name` or the universe will collapse.
+
+/// @slug example-tome-add
+/// @pass `/// @slug example-tome-add`
+
+### `tome_add`
+
+Used to add a standard GML script, note, or external file that contains Tome JSDoc tags. It parses the tags and generates the page automatically.
+```gml
+// Add a single parsed file
+tome_add("scr_player_controller");
+
+// Add a parsed file and link it to a specific slug note
+tome_add("scr_inventory_system", "nte_inventory_slugs");
+```
+
+/// @slug example-tome-add-raw
+/// @pass `/// @slug example-tome-add-raw`
+
+### `tome_add_raw`
+
+Used to add pure Markdown files directly to your site without parsing any JSDoc tags. You must manually define the sidebar title and category.
+```gml
+// Add a raw markdown file to the "Core Systems" category
+tome_add_raw("nte_design_document", "Design Doc", "Core Systems");
+```
+
+/// @slug example-tome-add-sidebar
+/// @pass `/// @slug example-tome-add-sidebar`
+
+### `tome_add_sidebar_link`
+
+Injects an external or internal web link directly into the documentation's sidebar under a specified category.
+```gml
+// Link to an external repository
+tome_add_sidebar_link("GitHub", "https://github.com/my-repo", "External Resources");
+```
+
+/// @slug example-tome-add-navbar
+/// @pass `/// @slug example-tome-add-navbar`
+
+### `tome_add_navbar_link`
+
+Adds a global link to the top navigation bar of your documentation site.
+```gml
+// Add a link to the top right of the site
+tome_add_navbar_link("Report an Issue", "https://github.com/my-repo/issues");
+```
