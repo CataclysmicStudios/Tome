@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"nte_demo_internal_linking",
+  "name":"nte_demo_internal_linking",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Tests/Demo.yy",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

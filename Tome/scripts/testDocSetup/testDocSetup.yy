@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_test_intro",
+  "%Name":"testDocSetup",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_test_intro",
+  "name":"testDocSetup",
   "parent":{
     "name":"Warnings",
     "path":"folders/Tests/Warnings.yy",

@@ -1,8 +1,11 @@
 // Whether Tome should run or not 
 #macro TOME_ENABLED true
 
+// Where your tomeSetup function is defined. This is used for clear debugging information. This should always be a string
+#macro TOME_SETUP_SCRIPT_FILE "demoDocSetup"
+
 // Where your docs will be placed
-#macro TOME_LOCAL_REPO_PATH "E:/TomeTest/Test1"
+#macro TOME_LOCAL_REPO_PATH "E:/TomeTest/Tome"
 
 // Show extended debug information in the console when generating your docs
 #macro TOME_VERBOSE true

@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_test_intro",
+  "%Name":"scr_demo_concat_part2",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_test_intro",
+  "name":"scr_demo_concat_part2",
   "parent":{
-    "name":"Warnings",
-    "path":"folders/Tests/Warnings.yy",
+    "name":"Demo",
+    "path":"folders/Tests/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

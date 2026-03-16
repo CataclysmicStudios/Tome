@@ -30,7 +30,7 @@ if (__TOME_CAN_RUN){
         }
         
         
-        var _finalMessage = global.__tomeData.docGenerationFailed ? "Doc generation failed: Please see warnings above.!\n" : "All docs generated!\n";
+        var _finalMessage = global.__tomeData.docGenerationFailed ? "Doc generation failed: Please see warnings above!\n" : "All docs generated!\n";
         __tomeTrace(_finalMessage);
         
         time_source_destroy(global.__tomeInitTimeSource);

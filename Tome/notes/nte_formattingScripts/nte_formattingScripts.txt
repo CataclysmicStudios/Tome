@@ -232,7 +232,7 @@ This will result in markdown that outputs like this
 #region /// @func tome_add(file, [slugs])
 /// @desc Adds a file to be parsed as a page to your site
 /// @param {string} file The name of a file (as shown in the IDE) or a direct file path to an external file
-/// @param {string | Array.string} [slugs] [Defualt = undefined] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs.
+/// @param {string | Array.string} [slugs] [Default = undefined] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs.
 function tome_add(_file, _slugs = undefined){
     
 
@@ -248,7 +248,7 @@ function tome_add(_file, _slugs = undefined){
 
     if (!array_contains(global.__tomeData.parsedFilePaths, _filePath)){
       	if (!file_exists(_filePath)){
-      		array_push(global.__tomeData.warnings, $"tome_add: The given file doesn't seem to exist as an script, note, or external file: {_file}");
+      		array_push(global.__tomeData.warnings, $"tome_add: The given file doesn't seem to exist as a script, note, or external file: {_file}");
       		exit;
       	}else{
             var _success = true;
@@ -350,7 +350,7 @@ function tome_add(_file, _slugs = undefined){
                 }
                 
             }else{
-                array_push(global.__tomeData.warnings, $"tome_add: {_file} - Arguments recieved - {argument_count}, Expected one for doc file, and optional string or array of strings for slug file(s). The provided slug file(s) appear to have not been added as an array. Please see documentation for how tome_add expects slug file(s) as this has changed:");
+                array_push(global.__tomeData.warnings, $"tome_add: {_file} - Arguments received - {argument_count}, Expected one for doc file, and optional string or array of strings for slug file(s). The provided slug file(s) appear to have not been added as an array. Please see documentation for how tome_add expects slug file(s) as this has changed:");
             }
         }
     }else{
@@ -594,7 +594,7 @@ function tome_add_to_sidebar(_name, _link, _category){
 #region /// @func tome_set_homepage(file, [raw])
 /// @desc Sets the homepage of your site to be the contents of a file (`.txt`, or `.md`)  or note asset from your project.
 /// @param {string} file The filepath or note asset name as shown in your project.
-/// @param {boolean} raw [Defualt = false] If the file should be used as is (true), or parsed by tome's parser (false)
+/// @param {boolean} raw [Default = false] If the file should be used as is (true), or parsed by tome's parser (false)
 function tome_set_homepage(_file, _raw = false){
     
     if (!file_exists(_file)){
