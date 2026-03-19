@@ -2,72 +2,70 @@
 /// @category Getting Started
 
 ## Setting up Your Scripts
-Getting started, each script you add using `tome_add` must contain the Tome tags `@category` and `@title`. 
+Getting started, each script you add using `Tome.site.add` must contain the Tome tags `@category` and `@title`. 
 
-This will set the name of the page in the sidebar of your site as `title` and the Category it appears under would be `category`
+This will set the name of the page in the sidebar of your site as `title` and the category it appears under would be `category`.
 
-
-! [Imgur](https://i.imgur.com/DfzC3kE.png)
+![Imgur](https://i.imgur.com/DfzC3kE.png)
 
 As shown in the example above the script would have contained `@title Unit Array` and `@category Units`
 
-## Basic Formatting of Jsdoc
-Tome works by parsing jsdoc tags from within your scripts. It is important that your jsdoc is structured in a specific, feather compliant way. Most of the jsdoc tags are basic, commonly supported ones, and others are unique to Tome.
+## Basic Formatting of JSDoc
+Tome works by parsing JSDoc tags from within your scripts. It is important that your JSDoc is structured in a specific, feather compliant way. Most of the JSDoc tags are basic, commonly supported ones, and others are unique to Tome.
 
-For an understanding of how jsdoc comments work in GameMaker, check out [this](https://manual.gamemaker.io/monthly/en/#t=The_Asset_Editors%2FCode_Editor_Properties%2FJSDoc_Script_Comments.htm) page of the manual.
+For an understanding of how JSDoc comments work in GameMaker, check out [this](https://manual.gamemaker.io/monthly/en/#t=The_Asset_Editors%2FCode_Editor_Properties%2FJSDoc_Script_Comments.htm) page of the manual.
 
-?> Also it's worth noting that jsdoc comments like `@param` or `@returns` which require a datatype like `@param {string} foo` don't necessarily need to conform to feather's rules, and can be literally anything.
+?> Also it's worth noting that JSDoc comments like `@param` or `@returns` which require a datatype like `@param {string} foo` don't necessarily need to conform to feather's rules, and can be literally anything.
 
 As a basic example, here is a function from this library (yes, Tome's documentation was generated with Tome!):
 
 ```gml
-#region /// @func tome_add_sidebar_link(link, title, category)
-/// @desc Adds a link to the sidebar of your site.
-/// @param {string} link The path to the link.
-/// @param {string} title The title of the link.
-/// @param {string} category The category of the link.
-function tome_add_sidebar_link(_link, _title, _category){
-
-    var _message = "";
-
-    _message += _link == "" ? "link" : "";
-    _message += _title == "" ? (_message == "" ? "" : ", ") + "title" : "";
-    _message += _category == "" ? (_message == "" ? "" : ", ") + "category" : "";
-
-    if (_message != ""){
-        _message += (string_count(",", _message) ? " values are" : " value is") + " empty";
-
-        array_push(global.__tomeData.warnings, $"tome_add_sidebar_link({_link}, {_title}, {_category}): {_message}.");
+#region /// @func Tome.site.setHomepage(file, [raw])
+/// @desc Sets the homepage of your site to be the contents of a file (`.txt`, or `.md`) or note asset from your project.
+/// @param {string} file The filepath or note asset name as shown in your project.
+/// @param {boolean} raw [Default = false] If the file should be used as is (true), or parsed by Tome's parser (false)
+Tome.site.setHomepage = function(_file, _raw = false){
+    
+    __tomeUpdateDebug();
+    
+    if (!file_exists(_file)){
+        _file = $"{Tome.__data.projectDirectory}notes/{_file}/{_file}.txt";
+    }
+    
+    if (!file_exists(_file)){
+        __tomePushWarning("The given file doesn't seem to exist.");
         exit;
     }
 
-    var _sidebarItem = {
-        _link,
-        _title,
-        _category,
-        _sidebarType: __TOME_SIDEBAR_TYPE.LINK
-    };
+    if (_raw){
+        Tome.site.addRaw(_file, "homepage", "homepage");
+    }else{
+        /// @type {any}
+        var _markdownData = __tomeParseDocumentationFile(_file, true);
     
-    array_push(global.__tomeData.docsPageItems, _sidebarItem);
-
-}
-#endregion // tome_add_sidebar_link
+        if (!_markdownData.success){
+            __tomePushWarning("Something went wrong during parsing. Please check warnings above for more information.", true);
+        }else{ 
+            array_push(Tome.__data.docsPageItems, _markdownData);
+        }
+    }
+};
+#endregion // Tome.site.setHomepage
 ```
 
 ### Things To Note Here
-- The order of the jsdoc comments must always be the following:
+- The order of the JSDoc comments must always be the following:
 	1. `@func` or its alternatives
 	2. `@desc` or its alternative
 	3. `@param` or its alternatives
 	4. `@returns` or its alternative
-
-
-
-
+<br>
 * Additionally you can:
     - Use `@deprecated` to visually indicate a constructor, function, or method is no longer recommended for use.
     - Use `@slug`/`@insert` after parameters to include a footer for the function
-
+<br>
+When making arguments optional you can indicate this to Tome by wrapping the name in square brackets like so `[raw]` from within the signature tag. Any arguments indicated this way will be marked as optional for the parameters markdown table.
+If you choose to leave the signature tag without indicators you can also indicate arguments as optional in the appropriate @param (or alternative) tag. This is also achieved by simply wraping the name in square brackets.
 
 ### Constructors
 - Tome will automattically format constructors and their methods as well! Just put `@constructor` before defining the constructor function and then use `@method` for each method within the constructor instead of the usual `@func`
@@ -194,11 +192,11 @@ For embeding a code block on your site like:
 ```
 /// @pass false
 
-The use of slugs can help reduce bloat in your implementation file, if you chose to add examples as a part of your JSDoc. 
-
 ## Slugs
 
-#### Defining slugs
+The use of slugs can help reduce bloat in your implementation file, if you chose to add examples as a part of your JSDoc. 
+
+### Defining slugs
 You can create note files that contain additonal documentation for functions that can then be insterted into your JSDocs by using the @slug or @insert tag.
 
 !> Slugs must be defined in a note file.
@@ -206,8 +204,7 @@ You can create note files that contain additonal documentation for functions tha
 /// @slug slug-file-layout-tag
 
 
-
-#### Using slugs
+### Using slugs
 To add a slug into the JSDoc markdown you simply use the @slug tag as such
 
 /// @slug slug-use-of-slugs
@@ -219,501 +216,81 @@ This will result in markdown that outputs like this
 </p>
 
 
-
-## Full Example of Tome's *Primary Functions* Page
+## Full Example from Tome's internal testing docs:
 /// @pass tags
 ```gml
-/// @title Primary functions
-/// @category API Reference
-/// @text Below are the functions you'll use to set up your docs and generate them. 
+/// @title Hybrid Systems
+/// @category Object Orientation
 
-#region Add functions
+/// @text ## Data Structures
+/// 
+/// The following structures are lightweight and contain no internal methods. They are strictly used for data passing.
 
-#region /// @func tome_add(file, [slugs])
-/// @desc Adds a file to be parsed as a page to your site
-/// @param {string} file The name of a file (as shown in the IDE) or a direct file path to an external file
-/// @param {string | Array.string} [slugs] [Default = undefined] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs.
-function tome_add(_file, _slugs = undefined){
-    
-
-    var _filePath = $"{global.__tomeData.projectDirectory}scripts/{_file}/{_file}.gml";
-    
-    if (!file_exists(_filePath)){
-        _filePath = $"{global.__tomeData.projectDirectory}notes/{_file}/{_file}.txt";
-    }
-    
-    if (!file_exists(_filePath)){
-        _filePath = _file;
-    }
-
-    if (!array_contains(global.__tomeData.parsedFilePaths, _filePath)){
-      	if (!file_exists(_filePath)){
-      		array_push(global.__tomeData.warnings, $"tome_add: The given file doesn't seem to exist as a script, note, or external file: {_file}");
-      		exit;
-      	}else{
-            var _success = true;
-            var _slugParseSuccess = true;
-            var _fileParseSuccess = true;
-        
-
-            // Determine if we have been passed an acceptable amount of arguments. We want slugs passed as an array of files, instead of individual file paths being passed as single arguments.
-            var _isSlugValid = (is_array(_slugs) || is_string(_slugs));
-            var _isCallValid = _isSlugValid || is_undefined(_slugs);
-            if (_isCallValid){
-
-                if (_isSlugValid){
-                    // Add slug(s)
-                    var _singleSlug = is_string(_slugs);
-                    
-                    var _i = 0;
-                    var _slugArray = (_singleSlug ? [_slugs] : _slugs);
-                    var _loopCount = array_length(_slugArray);
-                    
-                    repeat(_loopCount){
-                        var _slugName = _slugArray[_i];
-                        var _slugPath = ""
-                        
-                        if (file_exists(_slugName)){
-                            _slugPath = _slugName;
-                        }else{
-                            _slugPath = $"{global.__tomeData.projectDirectory}notes/{_slugName}/{_slugName}.txt";
-                        }
-                        
-                        if (!array_contains(global.__tomeData.parsedSlugPaths, _slugPath)){
-                            if (!file_exists(_slugPath)){ 
-                                array_push(global.__tomeData.warnings, $"tome_add: The given slug file doesn't seem to exist as a note or external file: {_slugName}");
-                                _slugParseSuccess = false;
-                                exit;
-                            }else{
-                                _slugParseSuccess = __tome_parse_slug(_slugPath);
-                                
-                                if (_slugParseSuccess){
-                                    array_push(global.__tomeData.parsedSlugPaths, _slugPath);
-                                }else{
-                                    exit;
-                                }	
-                            }
-                        }
-                        
-                        _success = _success && _slugParseSuccess;
-                        
-                        _i++;
-                    }
-                }
-
-                /// @type {Any}
-                var _markdownData = undefined;
-                if (_success){
-                    _markdownData = __tome_parse_file(_filePath);
-                    
-                    _fileParseSuccess = _markdownData.success;
-                    
-                    if (_fileParseSuccess){
-
-                        var _i = 0;
-                        var _foundMatch = false;
-                        repeat (array_length(global.__tomeData.docsPageItems)){
-                            var _item = global.__tomeData.docsPageItems[_i];
-
-                            if (_item._category == _markdownData._category && _item._title == _markdownData._title){
-
-                                var _context = _item._context;
-                                
-                                if (!is_undefined(_context)){
-                                    while (!is_undefined(_context._nextContext)){
-                                        _context = _context._nextContext;
-                                    }
-
-                                    _context._nextContext = _markdownData._context;
-                                }else{
-                                    _item._context = _markdownData._context;
-                                }
-                                _foundMatch = true;
-                                break;
-                            }
-                            _i++;
-                        }
-
-                        if (!_foundMatch){
-                            array_push(global.__tomeData.docsPageItems, _markdownData);
-                        }
-
-                        array_push(global.__tomeData.parsedFilePaths, _filePath);
-                    }
-                }
-                
-                _success = _success && _fileParseSuccess;
-                
-                if (!_success){
-                    array_push(global.__tomeData.warnings, $"tome_add: {_file} Something went wrong during parsing. Please check warnings above for more information.");
-                    global.__tomeData.docGenerationFailed = true;
-                }
-                
-            }else{
-                array_push(global.__tomeData.warnings, $"tome_add: {_file} - Arguments received - {argument_count}, Expected one for doc file, and optional string or array of strings for slug file(s). The provided slug file(s) appear to have not been added as an array. Please see documentation for how tome_add expects slug file(s) as this has changed:");
-            }
-        }
-    }else{
-        array_push(global.__tomeData.warnings, $"tome_add: File {_file} has already been added to docs skipping.");
-    }
-    
+/// @constructor
+/// @func Coordinate3D(x, y, z)
+/// @desc A simple constructor with no methods to test empty group rendering. Used to represent a point in 3D space.
+/// @slug warning-callout
+/// @param {real} x The X coordinate.
+/// @param {real} y The Y coordinate.
+/// @param {real} z The Z coordinate.
+function Coordinate3D(_x, _y, _z) constructor {
+    x = _x;
+    y = _y;
+    z = _z;
 }
-#endregion // tome_add
 
-#region /// @func tome_add_raw(file, title, category)
-/// @description Adds your own markdown file to a category. No parsing of this file is performed, it is added to the docs website as is.
-/// @param {string} file The filepath pointing to the file you wish to add to the docs site
-/// @param {string} title The title the page will have on the sidebar.
-/// @param {string} category The category the page will appear under on the sidebar.
-function tome_add_raw(_file, _title, _category){
-    var _message = "";
+/// @end
 
-    _message += _title == "" ? "title" : "";
-    _message += _category == "" ? (_message == "" ? "" : ", ") + "category" : "";
+/// @text ### Utility Functions
+/// 
+/// These standard functions operate on the lightweight data structures.
+/// We are testing standard functions interspersed between constructors.
 
-    if (_message != ""){
-        _message += (string_count(",", _message) ? " values are" : " value is") + " empty";
-
-        array_push(global.__tomeData.warnings, $"tome_add_raw({_file}, {_title}, {_category}):  - {_message}.");
-        exit;
-    }
-   
-    if (!array_contains(global.__tomeData.parsedFilePaths, _file)){
-        if (file_exists(_file)){
-
-            var _markdownString = __tome_file_text_read_all(_file);
-            
-            var _context = {
-                _contextType: __TOME_CONTEXT_TYPE.TEXT,
-                _parentContext: undefined,
-                _nextContext: undefined,
-                _edited: true,
-                _markdown: _markdownString
-            };
-
-            var _i = 0;
-            var _foundMatch = false;
-            repeat (array_length(global.__tomeData.docsPageItems)){
-                var _item = global.__tomeData.docsPageItems[_i];
-
-                if (_item._category == _category && _item._title == _title){
-
-                    var _contextTail = _item._context;
-                    
-                    if (!is_undefined(_contextTail)){
-                        while (!is_undefined(_contextTail._nextContext)){
-                            _contextTail = _contextTail._nextContext;
-                        }
-
-                        _contextTail._nextContext = _context;
-                    }else{
-                        _item._context = _context;
-                    }
-                    _foundMatch = true;
-                    break;
-                }
-                _i++;
-            }
-            
-            if (!_foundMatch){
-                var _markdownData = {
-                    _title,
-                    _category,
-                    _context,
-                    _link: "",
-                    _sidebarType: __TOME_SIDEBAR_TYPE.FILE,
-                    success: true
-                };
-
-                array_push(global.__tomeData.docsPageItems, _markdownData);
-            }
-            array_push(global.__tomeData.parsedFilePaths, _file);
-
-
-        }else{
-            array_push(global.__tomeData.warnings, $"tome_add_raw: The given file doesn't seem to exist at: {_file}. Check that the file does exist");
-            exit;
-        }
-    }else{
-        array_push(global.__tomeData.warnings, $"tome_add_raw: File {_file} has already been added to docs skipping.");
-    }
+/// @func calculate_distance_3d(point_a, point_b)
+/// @desc A regular function sitting next to constructors. Calculates the Euclidean distance between two 3D coordinates.
+/// @slug example-usage-box
+/// @param {struct.Coordinate3D} point_a The first point.
+/// @param {struct.Coordinate3D} point_b The second point.
+/// @return {real} The distance between the points.
+function calculate_distance_3d(_point_a, _point_b) {
+    // Math logic here
+    return 0; 
 }
-#endregion // tome_add_raw
 
-#region /// @func tome_add_sidebar_link(link, title, category)
-/// @desc Adds a link to the sidebar of your site.
-/// @param {string} link The path to the link.
-/// @param {string} title The title of the link.
-/// @param {string} category The category of the link.
-function tome_add_sidebar_link(_link, _title, _category){
+/// @func invert_coordinate(point)
+/// @desc Flips the signs of all axes in a Coordinate3D struct. Testing another standalone function.
+/// @param {struct.Coordinate3D} point The coordinate to invert.
+/// @return {struct.Coordinate3D} A new inverted coordinate struct.
+function invert_coordinate(_point) {
+    return new Coordinate3D(-_point.x, -_point.y, -_point.z);
+}
 
-    var _message = "";
+/// @text ## Complex Entities
+/// 
+/// Finally, a standard constructor with methods can exist in the same file without breaking the context of the previous standalone functions.
 
-    _message += _link == "" ? "link" : "";
-    _message += _title == "" ? (_message == "" ? "" : ", ") + "title" : "";
-    _message += _category == "" ? (_message == "" ? "" : ", ") + "category" : "";
+/// @constructor
+/// @func PhysicsBody(coordinate)
+/// @desc A complex entity that utilizes the lightweight data structures.
+/// @param {struct.Coordinate3D} coordinate The starting position.
+function PhysicsBody(_coordinate) constructor {
+    position = _coordinate;
+    velocity = new Coordinate3D(0, 0, 0);
 
-    if (_message != ""){
-        _message += (string_count(",", _message) ? " values are" : " value is") + " empty";
-
-        array_push(global.__tomeData.warnings, $"tome_add_sidebar_link({_link}, {_title}, {_category}): {_message}.");
-        exit;
-    }
-
-    var _sidebarItem = {
-        _link,
-        _title,
-        _category,
-        _sidebarType: __TOME_SIDEBAR_TYPE.LINK
-    };
+    /// @method apply_force(force_vector)
+    /// @desc Adds a force vector to the current velocity.
+    /// @param {struct.Coordinate3D} force_vector The direction and magnitude of the force.
+    /// @return {undefined}
+    static apply_force = function(_force_vector) {}
     
-    array_push(global.__tomeData.docsPageItems, _sidebarItem);
-
+    /// @method update_position()
+    /// @desc Applies the current velocity to the position coordinate.
+    /// @return {undefined}
+    static update_position = function() {}
 }
-#endregion // tome_add_sidebar_link
 
-#region /// @func tome_add_navbar_link(_link, _title)
-/// @desc Adds a link to the navbar
-/// @param {string} link The path to the link
-/// @param {string} title The title of the link
-function tome_add_navbar_link(_link, _title){
-	
-    var _message = "";
-
-    _message += _link == "" ? "link" : "";
-    _message += _title == "" ? (_message == "" ? "" : ", ") + "title" : "";
-
-    if (_message != ""){
-        _message += (string_count(",", _message) ? " values are" : " value is") + " empty";
-
-        array_push(global.__tomeData.warnings, $"tome_add_navbar_link({_link}, {_title}): {_message}.");
-        exit;
-    }
-
-    var _navbarItem = {
-        _link,
-        _title
-    }
-    
-    array_push(global.__tomeData.navbarItems, _navbarItem);
-}
-#endregion // tome_add_navebar_link
-
-#region Deprecated add functions
-
-#region /// @func tome_add_script(script, [slugs])
-/// @deprecated Use `tome_add` instead. This function is only retained for compatibility.
-/// @desc Adds a script to be parsed as a page to your site
-/// @param {string} scriptName The name off the script to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
-function tome_add_script(_scriptName){
-    var slugs = [];
-    
-    var _i = 1;
-    if (argument_count > 1){
-        repeat(argument_count - 1){
-            array_push(slugs, argument[_i])
-            _i++;
-        }
-    }
-    
-    if (array_length(slugs) > 0){
-        tome_add(_scriptName, slugs);
-    }else{
-        tome_add(_scriptName);
-    } 
-}
-#endregion // tome_add_script
-
-#region /// @func tome_add_note(noteName, [slugs])
-/// @deprecated Use `tome_add` instead. This function is only retained for compatibility.
-/// @desc Adds a note to be parsed as a page to your site 
-/// @param {string} noteName The note to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
-function tome_add_note(_noteName){
-    var slugs = [];
-    
-    var _i = 1;
-    if (argument_count > 1){
-        repeat(argument_count - 1){
-            array_push(slugs, argument[_i])
-            _i++;
-        }
-    }
-    
-    if (array_length(slugs) > 0){
-        tome_add(_noteName, slugs);
-    }else{
-        tome_add(_noteName);
-    } 
-
-}
-#endregion // tome_add_note
-
-#region /// @func tome_add_file(filePath)
-/// @deprecated Use `tome_add` instead. This function is only retained for compatibility.
-/// @desc Adds an external file to be parsed when the docs are generated
-/// @param {string} filePath The file to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external.txt file that will be used for adding slugs. One additional argument per slug note
-function tome_add_file(_filePath){
-    var slugs = [];
-    
-    var _i = 1;
-    if (argument_count > 1){
-        repeat(argument_count - 1){
-            array_push(slugs, argument[_i])
-            _i++;
-        }
-    }
-    
-    if (array_length(slugs) > 0){
-        tome_add(_filePath, slugs);
-    }else{
-        tome_add(_filePath);
-    }
-}
-#endregion // tome_add_file
-
-#region /// @func tome_add_to_sidebar(name, link, category)
-/// @deprecated Use `tome_add_sidebar_link` instead. This function is only retained for compatibility.
-/// @desc Adds an item to the sidebar of your site
-/// @param {string} name The name of the item
-/// @param {string} link The link to the item
-/// @param {string} category The category of the item
-function tome_add_to_sidebar(_name, _link, _category){
-	tome_add_sidebar_link(_link, _name, _category)
-}
-#endregion // tome_add_to_sidebar
-
-#endregion // Deprecated add functions
-
-#endregion // Add functions
-
-#region Homepage functions
-
-#region /// @func tome_set_homepage(file, [raw])
-/// @desc Sets the homepage of your site to be the contents of a file (`.txt`, or `.md`)  or note asset from your project.
-/// @param {string} file The filepath or note asset name as shown in your project.
-/// @param {boolean} raw [Default = false] If the file should be used as is (true), or parsed by tome's parser (false)
-function tome_set_homepage(_file, _raw = false){
-    
-    if (!file_exists(_file)){
-        _file = $"{global.__tomeData.projectDirectory}notes/{_file}/{_file}.txt";
-    }
-    
-    if (!file_exists(_file)){
-        array_push(global.__tomeData.warnings, $"tome_set_homepage: The given file doesn't seem to exist: {_file}");
-		exit;
-	}
-
-    if (_raw){
-        tome_add_raw(_file, "homepage", "homepage");
-    }else{
-        /// @type {any}
-        var _markdownData = __tome_parse_file(_file, true);
-    
-        if (!_markdownData.success){
-            array_push(global.__tomeData.warnings, $"tome_set_homepage: {_file} Something went wrong during parsing. Please check warnings above for more information.");
-            global.__tomeData.docGenerationFailed = true;
-        }else{ 
-            array_push(global.__tomeData.docsPageItems, _markdownData);
-        }
-    }
-}
-#endregion // tome_set_homepage
-
-#region Deprecated homepage functions
-
-#region /// @func tome_set_homepage_from_file(filePath)
-/// @deprecated Use `tome_set_homepage` instead. This function is only retained for compatibility.
-/// @desc Sets the homepage of your site to be the contents of a file (`.txt`, or `.md`)
-/// @param {string} filePath The file to use as the homepage
-function tome_set_homepage_from_file(_filePath){
-    
-    tome_set_homepage(_filePath);
-}
-#endregion // tome_set_homepage_from_file
-
-#region /// @func tome_set_homepage_from_note(noteName)
-/// @deprecated Use `tome_set_homepage` instead. This function is only retained for compatibility.
-/// @desc Sets the homepage of your site to be the contents of the given note
-/// @param {string} noteName The note to use as the homepage
-function tome_set_homepage_from_note(_noteName){
-    var _filePath = $"{global.__tomeData.projectDirectory}notes/{_noteName}/{_noteName}.txt";
-
-    tome_set_homepage(_filePath);
-}
-#endregion // tome_set_homepage_from_note
-
-#endregion // Deprecated homepage functions
-
-#endregion // Homepage functions
-
-#region Site data and customization
-
-#region /// @func tome_set_site_name(name)
-/// @desc Sets the name of your site
-/// @param {string} name The name of the site
-function tome_set_site_name(_name){
-    __tome_setup_data()
-	__tome_file_update_config("name", _name);
-}
-#endregion // tome_set_site_name
-
-#region /// @func tome_set_site_description(desc)
-/// @desc Sets the description of your site
-/// @param {string} desc The description of the site
-function tome_set_site_description(_desc){
-	__tome_file_update_config("description", _desc);
-}
-#endregion // tome_set_site_description
-
-#region /// @func tome_set_site_theme_color(color)
-/// @desc Sets the theme color of your site
-/// @param {string} color The theme color of the site
-function tome_set_site_theme_color(_color){
-	__tome_file_update_config("themeColor", _color);
-}
-#endregion // tome_set_site_theme_color
-
-#region /// @func tome_set_site_latest_version(versionName)
-/// @desc Sets the latest version of the docs. The version
-/// @param {string} versionName The latest version of the docs
-function tome_set_site_latest_version(_versionName){
-    
-    if (string_count(" ", _versionName) > 0) {
-        array_push(global.__tomeData.warnings, $"tome_set_site_latest_version: The version name '{_versionName}' contains spaces. Spaces have been replaced with hyphens.");
-    }
-
-	var _fixedVersionName = string_replace_all(_versionName, " ", "-");
-	global.__tomeData.latestDocsVersion = _fixedVersionName;
-	__tome_file_update_config("latestVersion", _fixedVersionName);
-}
-#endregion // tome_set_site_latest_versions
-
-/// @text ?> Version names currently cannot contain spaces!
-
-#region /// @func tome_set_site_older_versions(versions)
-/// @desc Specifically set what older versions of your docs you want to show on the site's version selector
-/// @param {array<string>} versions An array of older versions names to display in the version selector
-function tome_set_site_older_versions(_versions){
-
-    var _fixedVersions = _versions;
-
-    if (!is_array(_versions)) {
-        array_push(global.__tomeData.warnings, $"tome_set_site_older_versions: Expected an array of version strings, but received a {typeof(_versions)}. This has been stringified and placed in an array");
-        _fixedVersions = [ $"{_versions}" ];
-    }
-
-	__tome_file_update_config("otherVersions", _fixedVersions);
-}
-#endregion // tome_set_sige_older_versions
-
-#endregion // Site data and customization
 ```
-
-/// @pass false
-
+///@pass false
 ## All Tags
 
 | Tag Name                                    | Purpose                                                                                 | Multi-line? |

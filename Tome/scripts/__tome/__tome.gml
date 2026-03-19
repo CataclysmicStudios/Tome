@@ -62,7 +62,10 @@ enum __TOME_SIDEBAR_TYPE{
 /// @desc Initializes the Tome API by defining all the functions that will be used to set up and generate the documentation site. This is called automatically.
 function __tomeInitializeAPI(){
     /// @pass false
-    /// @text Below are the functions you'll use to set up your docs and generate them. 
+    /// @text Your docs are set up by using functions found in the Tome namespace. Add/edit site items with Tome.site.\*, and check out Tome.utils.\* for functions that will help with the generation of your site.
+    /// <br>
+    /// <br>
+    /// @text Below are the functions you'll use to set up your docs and generate them.
 
     #region Site Functions
 
@@ -71,7 +74,7 @@ function __tomeInitializeAPI(){
     #region /// @func Tome.site.add(file, [slugs])
     /// @desc Adds a file to be parsed as a page to your site
     /// @param {string} file The name of a file (as shown in the IDE) or a direct file path to an external file.
-    /// @param {string | Array.string} [slugs] [Default = undefined] The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs.
+    /// @param {string | Array.string | undefined} [slugs] [Default = undefined] The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs.
     Tome.site.add = function(_file, _slugs = undefined){
 
         __tomeUpdateDebug();
@@ -435,8 +438,8 @@ function __tomeInitializeAPI(){
     };
     #endregion // Tome.site.setDescription
 
-    /// @text ?> Version names currently cannot contain spaces!
-
+    /// @text ?> Version names cannot contain illegal filepath characters or spaces!
+    
     #region /// @func Tome.site.setLatestVersion(_versionName)
     /// @desc Sets the latest version of your project. This will be used to determine which version of the docs to show by default, and will be shown in the version dropdown if you have multiple versions of docs.
     /// @param {string} _versionName The latest version of your project.   
@@ -506,8 +509,10 @@ function __tomeInitializeAPI(){
     #endregion // Tome.site.setConfigProperty
 
     #endregion // Config functions
+    
+    /// @text ?> For more information about using custom CSS with Tome check [this](misc-advanced-use?id=custom-css) out!
 
-    #region /// @func Tome.site.editCustomCSS(css_data)
+    #region /// @func Tome.site.editCustomCSS(cssData)
     /// @desc Adds or overrides custom CSS for the documentation site.
     /// @param {string|struct} _cssData A raw CSS string or a nested struct containing CSS rules.
     Tome.site.editCustomCSS = function(_cssData) {
@@ -635,7 +640,7 @@ function __tomeSetupData(){
 
 #region /// @func __tomeGenerateDocs()
 /// @desc Generates the documentation website
-/// Parses all files added via `tome_add` functions and generates your documentation site.  
+/// Parses all files added via `Tome.site` functions and generates your documentation site.  
 /// Then it adds them to the repo path specified with the macro `TOME_LOCAL_REPO_PATH`
 function __tomeGenerateDocs(){
 
@@ -1417,18 +1422,18 @@ function __tomeParseSlugFile(_filePath){
 						    break;
                         
                         case "@pass":
-                            _markdown += $"{_tagContent}\n";
+                            _markdown += $"{_tagContent}";
                             break;
 					
 						default:
-							_markdown += $"{_lineStringUntrimmed}\n";
+							_markdown += $"{_lineStringUntrimmed}";
 						    break;
 					}
 				}else{
-					_markdown += $"{_lineStringUntrimmed}\n";	
+					_markdown += $"{_lineStringUntrimmed}";	
 				}
 			}else{
-				_markdown += $"{_lineStringUntrimmed}\n";
+				_markdown += $"{_lineStringUntrimmed}";
 			}
 		}
 		
@@ -1453,7 +1458,11 @@ function __tomeGenerateFile(_markdownData){
     
     var _context = _markdownData._context;
 
-    var _markdownString = $"# {_markdownData._title}\n";
+    var _markdownString = "";
+    
+    if (_markdownData._title != "homepage"){
+        _markdownString += $"# {_markdownData._title}\n";
+    }
 
     while(!is_undefined(_context)){
         var _nextContext = undefined;
@@ -1686,11 +1695,7 @@ function __tomeAddTextAnyways(_context, text){
         _context._markdown = "";
     }
     
-    if (_context._contextType == __TOME_CONTEXT_TYPE.TEXT){
-        _context._markdown += $"{text}\n";
-    }else{
-        _context._markdown += text;
-    }
+    _context._markdown += text;
     
     return _context;
 }
@@ -1924,9 +1929,9 @@ function __tomeStructToCSS(_cssStruct, _indent = ""){
         var _value = _cssStruct[$ _key];
         
         if (is_struct(_value)){
-            _nestedString += $"{_indent}{_key}{"\{"}\n";
+            _nestedString += $"{_indent}{_key}{"{"}\n";
             _nestedString += __tomeStructToCSS(_value, _indent + "\t");
-            _nestedString += $"{_indent}{"\}"}\n\n";
+            _nestedString += $"{_indent}{"}"}\n\n";
         }else{
             _propertyString += $"{_indent}{_key}: {_value};\n";
         }
@@ -1941,7 +1946,7 @@ function __tomeStructToCSS(_cssStruct, _indent = ""){
     }
     
     _cssString += _nestedString;
-    
+
     return _indent == "" ? string_trim_end(_cssString) : _cssString;
 }
 #endregion // __tomeStructToCSS
@@ -2107,15 +2112,15 @@ function __tomeProcessDocsItems(){
             var _fileCategoryDashed = string_lower(__tomeStringReplaceAllExt(_item._category, _illegalFilePathChars, "-"));
             var _fileTitleDashed = string_lower(__tomeStringReplaceAllExt(_item._title, _illegalFilePathChars, "-"));
             
-            var _filePath = $"{_fileCategoryDashed}-{_fileTitleDashed}.md";
+            var _filePath = $"{_fileCategoryDashed}-{_fileTitleDashed}";
 
-            if (_filePath == "homepage-homepage.md"){
-                _filePath = "README.md";
+            if (_filePath == "homepage-homepage"){
+                _filePath = "README";
             }
 
             _item._link = _filePath;
 
-            _filePath = $"{_finalDocPath}{_filePath}";
+            _filePath = $"{_finalDocPath}{_filePath}.md";
 
             __tomeUpdateFile(_filePath, __tomeGenerateFile(_item));
         }
@@ -2374,6 +2379,10 @@ if (__TOME_CAN_RUN){
     
     if (GM_is_sandboxed){
         __tomeTrace("Tome is set to run, but GameMaker's file system sandbox is enabled. Tome will not function with this enabled. To disable, go to Game Options -> Platform (Windows, macOS, Ubuntu) -> Check the \"Disable file system sandbox\".");
+    
+        if (string_ends_with(GM_project_filename, "Tome/Tome.yyp")){
+            game_end();
+        }
     }else{
         global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, function(){
             
@@ -2414,10 +2423,16 @@ if (__TOME_CAN_RUN){
 
             Tome = undefined;
 
+            if (string_ends_with(GM_project_filename, "Tome/Tome.yyp")){
+                game_end();
+            }
+
         }, [], 1);
 
         time_source_start(global.__tomeInitTimeSource);
     }
+
+
 }
 #endregion // Initialization
 
@@ -2427,11 +2442,11 @@ if (__TOME_CAN_RUN){
 ///
 /// Below are functions that are still available for compatibility reasons, but are no longer recommended for use. These functions may be removed in a future update, so it is recommended to switch to the new API equivalents where possible. If you have any questions about how to update your code, please refer to the documentation.
 
-#region /// @func tome_add_script(script, [slugs])
+#region /// @func tome_add_script(scriptName, [slugs])
 /// @deprecated Use `Tome.site.add` instead. This function is only retained for compatibility.
 /// @desc Adds a script to be parsed as a page to your site
 /// @param {string} scriptName The name of the script to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
+/// @param {string} slugs The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
 function tome_add_script(_scriptName){
     if (__tomeInitialized()){
         var slugs = [];
@@ -2459,7 +2474,7 @@ function tome_add_script(_scriptName){
 /// @deprecated Use `Tome.site.add` instead. This function is only retained for compatibility.
 /// @desc Adds a note to be parsed as a page to your site 
 /// @param {string} noteName The note to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
+/// @param {string} slugs The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
 function tome_add_note(_noteName){
     if (__tomeInitialized()){
         var slugs = [];
@@ -2488,7 +2503,7 @@ function tome_add_note(_noteName){
 /// @deprecated Use `Tome.site.add` instead. This function is only retained for compatibility.
 /// @desc Adds an external file to be parsed when the docs are generated
 /// @param {string} filePath The file to add
-/// @param {string} [slugs] The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
+/// @param {string} slugs The name of any notes (as shown in the IDE) or a direct file path to an external .txt file that will be used for adding slugs. One additional argument per slug note.
 function tome_add_file(_filePath){
     if (__tomeInitialized()){
         var slugs = [];
@@ -2594,8 +2609,6 @@ function tome_set_site_theme_color(_color){
     }
 }
 #endregion // tome_set_site_theme_color
-
-/// @text ?> Version names currently cannot contain spaces!
 
 #region /// @func tome_set_site_latest_version(versionName)
 /// @deprecated Use `Tome.site.setLatestVersion` instead. This function is only retained for compatibility.

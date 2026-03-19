@@ -1,71 +1,56 @@
-/// @title Setting Up Your Site
-/// @category Getting Started
 
-Setting up your documentation site is relatively simple. All of your code will be written in the script `tomeDocSetup`.
+
+Setting up your documentation site is relatively simple. All of your code will be written in the function `tomeSetup`.
+
+By default this is located in the included asset tomeDocSetup. This can be moved to a location of your choosing. Check out [this](api-reference-primary-functions) for more information.
 
 ## Example
-Here is an example of how the site for our game Augury is set up.
+Here is an example of how the site for Tome is set up.
 
 ```gml
-
-/*/
- * Set your site info here!
-/*/
-
-//Set your site name first as this is what triggers tome to setup all data related to the site
-tome_set_site_name("Augury");
-
-//Then set the rest of your data in whatever order you see fit.
-tome_set_site_description("This site documents the many systems of Augury");
-tome_set_site_latest_version("Augury");
-
-
-
-/*/
- * Set any theme data here!
- * Check out the tome docs as there is so much more that can be customized now.
-/*/ 
-tome_set_site_theme_color("#DDDDFF");
-
-
-/*/
- * Add files and links you wish to make up the docs page sidebar here!
-/*/	
-
-
-tome_add("scr_unitArray");
-tome_add("scr_unitNames");
-tome_add("scr_itemStackClass");
-tome_add("scr_itemDropTableClass");
-tome_add("scr_itemFunctions");
-tome_add("scr_itemInventoryClass");
-tome_add("scr_markdown");
-tome_add("scr_keybinds");
-tome_add("scr_fileSystem");
-tome_add("scr_serialization");
-tome_add("scr_arraysFunctions");
-tome_add("scr_fearSystem");
-tome_add("scr_discordLogging");
-tome_add("scr_strings");
-tome_add("scr_binaryFiles");
-tome_add("scr_miscUnitScripts");
-tome_add("scr_structs");
-tome_add("scr_deltaTime");
-tome_add("scr_mathMisc");
-
-tome_set_homepage("docsHomePage");
-
-tome_add_sidebar_link("Scribble", "https://www.jujuadams.com/Scribble/", "Libraries we use");
-tome_add_sidebar_link("Dynamo", "https://www.jujuadams.com/Dynamo/", "Libraries we use");
-tome_add_sidebar_link("SNAP", "https://www.jujuadams.com/SNAP/", "Libraries we use");
-tome_add_sidebar_link("SimThreads", "https://github.com/tabularelf/SimThreads", "Libraries we use");
-tome_add_sidebar_link("Collage", "https://tabularelf.com/docs/collage", "Libraries we use");
-
-
-/*/
- * Add any information you want added to the navbar here!
-/*/ 
-
+// Place all of your Tome.site.* function calls inside of this function. 
+function tomeSetup(){
+    /*/
+     * Set your site info here!
+    /*/
+    
+    Tome.site.setName("Tome");
+    
+    Tome.site.setDescription("Documentation for the Tome library"); 
+    Tome.site.setLatestVersion("1.0.0"); 
+Tome.site.setOlderVersions(["0.5.0", "0.4.0", "0.3.0", "0.2.0", "0.1.0"]);
+    
+    /*/
+     * Set any theme data here!
+     * Check out the tome docs as there is so much more that can be customized now.
+    /*/ 
+    
+    Tome.site.setThemeColor("#11DD11");
+    
+    /*/
+     * Add files and links you wish to make up the docs page sidebar here!
+    /*/	
+    
+    Tome.site.setHomepage("nte_homepage");
+    
+     
+    Tome.site.add("__tome"); 
+    Tome.site.addRaw("nte_configuration", "Configuration", "API Reference");
+    
+    Tome.site.addRaw("nte_settingUp", "Setting Up Tome", "Getting Started"); 
+    Tome.site.addRaw("nte_exampleSite", "Setting Up Your Site", "Getting Started"); 
+    
+    Tome.site.add("nte_formattingScripts", "nte_slugs"); 
+    Tome.site.addRaw("nte_advancedUse", "Advanced Use", "Misc");
+    
+    /*/
+     * Add any information you want added to the navbar here!
+    /*/ 
+    
+    Tome.site.addNavbarLink("Report a bug", "https:github.com/CataclysmicStudios/Tome/issues"); 
+    Tome.site.addNavbarLink("Releases", "https:github.com/CataclysmicStudios/Tome/releases");
+     
+}
 ```
 
 ## Breakdown

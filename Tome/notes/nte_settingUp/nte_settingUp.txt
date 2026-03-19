@@ -1,6 +1,3 @@
-/// @title Setting Up Tome
-/// @category Getting Started
-
 ?> This guide assumes you know the basics of how Github repos work
 
 ## Setting up Tome in your project
@@ -29,4 +26,4 @@ Next we'll configure Github pages to deploy your site. Unless you are using a cu
 
 **Tome** is now setup and ready to use!
 
-Click see how to set up your site's content [here](Setting-Up-Your-Site)
+See how to set up your site's content [here](getting-started-setting-up-your-site)

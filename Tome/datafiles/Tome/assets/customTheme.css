@@ -1,3 +1,7 @@
+:root {
+    --placeholder: var(--theme-color);
+}
+
 .content h1 {
     font-size: 3.0em;
     /*color: #2c3e50; */

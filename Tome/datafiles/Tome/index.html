@@ -18,6 +18,185 @@
 		<!-- Themes -->
 		<link rel="stylesheet" href="https://unpkg.com/docsify-themeable/dist/css/theme-simple-dark.css" />
 		<link rel="stylesheet" href="assets/codeTheme.css" />
+		<style>
+			/* https://jhildenbiddle.github.io/docsify-themeable/#/customization */
+			:root {
+				/* Basic */
+				--base-background-color: #293338;
+				--base-color: #f8f8f2;
+				--base-font-weight: 400;
+				--strong-color: #fff;
+				--strong-font-weight: 600;
+				--base-font-family: 'Roboto', sans-serif;
+				--heading-font-family: 'Rubik', sans-serif;
+				--heading-font-weight: 600;
+				--heading-h1-font-weight: var(--heading-font-weight);
+				--heading-h2-font-weight: var(--heading-font-weight);
+				--heading-h3-font-weight: var(--heading-font-weight);
+				--heading-h4-font-weight: var(--heading-font-weight);
+				--heading-h5-font-weight: var(--heading-font-weight);
+				--heading-h6-font-weight: var(--heading-font-weight);
+
+				/* Content */
+				--content-max-width: 90em;
+				--link-color--hover: var(--theme-color);
+				--heading-h1-color: var(--theme-color);
+				--heading-h2-color: var(--theme-color);
+				--heading-h2-border-color: var(--theme-color);
+				--table-head-border-width: 1px;
+				--table-cell-border-width: 1px;
+				--table-row-odd-background: #242e33;
+
+				/* Navbar */
+				--navbar-root-border-color: var(--theme-color);
+				--navbar-root-color: var(--theme-color);
+				--navbar-root-color--hover: var(--base-background-color);
+				--navbar-root-background--hover: var(--theme-color);
+				--navbar-root-border-width: 1px;
+				--navbar-root-border-radius: 5px;
+				--navbar-root-padding: 5px;
+				--navbar-root-margin: 0 0 0 1em;
+			}
+			/*
+			#version-selector {
+				background: var(--base-background-color);
+				color: var(--theme-color);
+				border-color: var(--blockquote-border-color);
+				border-radius: 5px;
+				margin-top: 0.75em;
+				padding: 0 5px;
+				font-family: var(--code-font-family);
+				font-size: 18px;
+			}
+			*/
+			/* Base Version Selector Styles (Theme-Agnostic) */
+
+			/* Base Version Selector Styles (Theme-Agnostic) */
+			.version-dropdown-container {
+				--dropdown-padding: 2px 24px 2px 10px;
+				--dropdown-active-weight: 600;
+
+				position: relative;
+				display: grid;
+				grid-template-areas: "stack";
+				margin: 0.75em auto 0 auto; 
+				font-family: var(--code-font-family, inherit);
+				font-size: 18px;
+				user-select: none;
+				width: max-content;
+				min-width: 140px; 
+			}
+
+			.version-dropdown-sizer {
+				grid-area: stack;
+				visibility: hidden;
+				padding: var(--dropdown-padding);
+				font-weight: var(--dropdown-active-weight);
+				white-space: nowrap;
+				display: grid;
+			}
+
+			.version-dropdown-sizer div {
+				grid-area: 1 / 1; 
+			}
+
+			.version-dropdown-selected {
+				grid-area: stack;
+				width: 100%;
+				box-sizing: border-box;
+				background: var(--base-background-color);
+				color: var(--theme-color);
+				border: 1px solid var(--blockquote-border-color);
+				border-radius: 5px;
+				padding: var(--dropdown-padding); 
+				font-weight: var(--dropdown-active-weight);
+				cursor: pointer;
+				display: block;
+				text-align: left; 
+			}
+
+			.version-dropdown-selected::after {
+				content: '▼';
+				font-size: 0.5em;
+				position: absolute;
+				right: 10px;
+				top: 50%;
+				transform: translateY(-50%);
+			}
+
+			.version-dropdown-options {
+				display: none;
+				position: absolute;
+				top: 100%;
+				left: 0;
+				min-width: 100%;
+				background-color: var(--base-background-color);
+				border: 1px solid var(--blockquote-border-color);
+				border-radius: 5px;
+				margin: 4px 0 0 0;
+				padding: 0;
+				list-style: none;
+				z-index: 100;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+			}
+
+			.version-dropdown-container.open .version-dropdown-options {
+				display: block;
+			}
+
+			.version-dropdown-options li {
+				padding: 6px 10px;
+				color: var(--base-color);
+				cursor: pointer;
+				font-size: 16px;
+				white-space: nowrap;
+				text-align: left; /* Forces left justification */
+				transition: background-color 0.2s ease, color 0.2s ease;
+			}
+
+			.version-dropdown-options li:hover {
+				background-color: var(--table-row-odd-background, rgba(128, 128, 128, 0.1));
+				color: var(--theme-color);
+			}
+
+			.version-dropdown-options li.version-active {
+				color: var(--theme-color);
+				font-weight: 600;
+			}
+
+			pre[class*='language-'] {
+				border: 1px solid #1f282d;
+				overflow: auto;
+				position: relative;
+			}
+			a code:hover {
+				color: var(--theme-color);
+				transition: 0.25s;
+			}
+			a code {
+				transition: 0.25s;
+			}
+			a:hover {
+				color: var(--theme-color);
+				transition: 0.25s;
+			}
+			a {
+				text-underline-offset: 2px;
+				transition: 0.25s;
+			}
+			footer a {
+				text-decoration: none !important;
+				font-weight: bold;
+			}
+			
+		/* Ensure long API names in headers wrap cleanly on small screens without breaking the layout */
+		.markdown-section h1, 
+		.markdown-section h2 {
+			word-break: break-word;
+			overflow-wrap: break-word;
+			min-width: 0;
+		}
+		</style>
 		<link rel="stylesheet" href="assets/customTheme.css" />
 		<!-- Config -->
 		<script type="text/javascript" src="config.js"></script>
@@ -38,8 +217,12 @@
 					'<a id="home-link" class="app-name-link" data-nosearch href="/"><span id="home-text" title="' +
 					config.description + '">' + config.name +
 					' Docs</span><br></a>' +
-					'<select id="version-selector" name="version">' +
-					'</select>',
+					'<div class="version-dropdown-container">' +
+					'   <div class="version-dropdown-sizer"></div>' +
+					'   <div class="version-dropdown-selected"></div>' +
+					'   <ul class="version-dropdown-options"></ul>' +
+					'</div>' +
+					'<select id="version-selector" name="version" style="display:none;"></select>',
 				nameLink: false,
 				loadSidebar: '_sidebar.md',
 				loadNavbar: true,
@@ -174,6 +357,39 @@
 								headerLink.classList.add('anchor');
 								headerLink.setAttribute('data-id', headerLink.parentElement.id);
 							}
+							// SYNC CUSTOM DROPDOWN TO CURRENT ROUTE ON PAGE CHANGE
+							const customSelected = Docsify.dom.find('.version-dropdown-selected');
+							const customOptionsItems = Docsify.dom.findAll('.version-dropdown-options li');
+							const nativeSelector = Docsify.dom.find('#version-selector');
+							
+							if (customSelected && customOptionsItems.length > 0) {
+								let activeVersionValue = config.latestVersion;
+								
+								// Read the route directly from Docsify's internal state to avoid URL race conditions
+								if (vm.route && vm.route.path) {
+									// vm.route.path always starts with '/', so index 1 is the first folder (the version)
+									const potentialVersion = vm.route.path.split('/')[1]; 
+									
+									const isValidVersion = Array.from(customOptionsItems).some(li => li.dataset.value === potentialVersion);
+									if (isValidVersion) {
+										activeVersionValue = potentialVersion;
+									}
+								}
+								
+								customOptionsItems.forEach(li => {
+									if (li.dataset.value === activeVersionValue) {
+										li.classList.add('version-active');
+										customSelected.textContent = li.textContent;
+									} else {
+										li.classList.remove('version-active');
+									}
+								});
+
+								// Keep the hidden native selector in sync just in case
+								if (nativeSelector) {
+									nativeSelector.value = activeVersionValue;
+								}
+							}
 						});
 
 						hook.mounted(() => {
@@ -193,16 +409,70 @@
 									isDefault: false,
 								});
 							}
-
+							
 							// POPULATE VERSION SELECTOR DROP DOWN
-							versionSelections.map((version, index) => {
+							const customContainer = Docsify.dom.find('.version-dropdown-container');
+							const customSizer = Docsify.dom.find('.version-dropdown-sizer');
+							const customSelected = Docsify.dom.find('.version-dropdown-selected');
+							const customOptionsList = Docsify.dom.find('.version-dropdown-options');
+
+							// 1. Check the actual URL to see what version we are currently viewing
+							let currentVersionValue = config.latestVersion; 
+							const hashMatch = window.location.hash.match(/^#\/([^\/]+)/);
+							if (hashMatch) {
+								const urlVersion = hashMatch[1];
+								if (versionSelections.some(v => v.value === urlVersion)) {
+									currentVersionValue = urlVersion;
+								}
+							}
+
+							versionSelections.forEach((version, index) => {
 								versionSelector.options[index] = new Option(
 									version.text,
 									version.value,
 									version.isDefault
 								);
+
+								const sizerText = document.createElement('div');
+								sizerText.textContent = version.text;
+								customSizer.appendChild(sizerText);
+
+								const li = document.createElement('li');
+								li.textContent = version.text;
+								li.dataset.value = version.value;
+								
+								// 2. Highlight based on the URL, NOT the default config
+								if (version.value === currentVersionValue) {
+									li.classList.add('version-active');
+									customSelected.textContent = version.text;
+									versionSelector.value = version.value;
+								}
+
+								li.addEventListener('click', (e) => {
+									e.stopPropagation();
+									
+									versionSelector.value = version.value;
+									versionSelector.dispatchEvent(new Event('change'));
+
+									customSelected.textContent = version.text;
+									Docsify.dom.findAll('.version-dropdown-options li').forEach(el => el.classList.remove('version-active'));
+									li.classList.add('active');
+									customContainer.classList.remove('open');
+								});
+
+								customOptionsList.appendChild(li);
 							});
 
+							customSelected.addEventListener('click', (e) => {
+								e.stopPropagation();
+								customContainer.classList.toggle('open');
+							});
+
+							document.addEventListener('click', () => {
+								if (customContainer) {
+									customContainer.classList.remove('open');
+								}
+							});
 							// --- START RESIZABLE SIDEBAR CODE ---
 							var resizer = document.createElement('div');
 							
@@ -310,118 +580,6 @@
 		<script src="https://cdn.jsdelivr.net/npm/docsify-tabs@1"></script>
 		<script src="https://unpkg.com/prismjs@1.24.0/components/prism-gml.min.js"></script>
 		<script src="https://unpkg.com/docsify-copy-code@2"></script>
-		<style>
-			/* https://jhildenbiddle.github.io/docsify-themeable/#/customization */
-			:root {
-				/* Basic */
-				--base-background-color: #293338;
-				--base-color: #f8f8f2;
-				--base-font-weight: 400;
-				--strong-color: #fff;
-				--strong-font-weight: 600;
-				--base-font-family: 'Roboto', sans-serif;
-				--heading-font-family: 'Rubik', sans-serif;
-				--heading-font-weight: 600;
-				--heading-h1-font-weight: var(--heading-font-weight);
-				--heading-h2-font-weight: var(--heading-font-weight);
-				--heading-h3-font-weight: var(--heading-font-weight);
-				--heading-h4-font-weight: var(--heading-font-weight);
-				--heading-h5-font-weight: var(--heading-font-weight);
-				--heading-h6-font-weight: var(--heading-font-weight);
-
-				/* Content */
-				--content-max-width: 90em;
-				--link-color--hover: var(--theme-color);
-				--heading-h1-color: var(--theme-color);
-				--heading-h2-color: var(--theme-color);
-				--heading-h2-border-color: var(--theme-color);
-				--table-head-border-width: 1px;
-				--table-cell-border-width: 1px;
-				--table-row-odd-background: #242e33;
-
-				/* Navbar */
-				--navbar-root-border-color: var(--theme-color);
-				--navbar-root-color: var(--theme-color);
-				--navbar-root-color--hover: var(--background);
-				--navbar-root-background--hover: var(--theme-color);
-				--navbar-root-border-width: 1px;
-				--navbar-root-border-radius: 5px;
-				--navbar-root-padding: 5px;
-				--navbar-root-margin: 0 0 0 1em;
-			}
-			#version-selector {
-				background: var(--base-background-color); /* */
-				color: var(--theme-color);
-				border-color: var(--blockquote-border-color);
-				border-radius: 5px;
-				margin-top: 0.75em;
-				padding: 0 5px;
-				font-family: var(--code-font-family);
-				font-size: 18px;
-			}
-			pre[class*='language-'] {
-				border: 1px solid #1f282d;
-				overflow: auto;
-				position: relative;
-			}
-			a code:hover {
-				color: var(--theme-color) !important;
-				transition: 0.25s;
-			}
-			a code {
-				transition: 0.25s;
-			}
-			a:hover {
-				color: var(--theme-color);
-				transition: 0.25s;
-			}
-			a {
-				text-underline-offset: 2px;
-				transition: 0.25s;
-			}
-			footer a {
-				text-decoration: none !important;
-				font-weight: bold;
-			}
-			
-		/* !! -- alynne begin -- !! */
-			
-			.app-nav>ul>li>a:hover, .app-nav>ul>li>span:hover {
-				color: #293338;
-			}
-			
-			/* wrap function index */
-			@media (max-width: 1440px) {
-				[data-page*="/Function-Index."] .markdown-section li a { vertical-align:top; }
-				
-				[data-page*="/Function-Index."] .markdown-section code:not([class*=lang-]):not([class*=language-]) {
-					white-space: break-spaces;
-					display: inline-block;
-					margin-bottom: -6px;
-					padding: 0 6px 0 1.5ch;
-					text-decoration: underline;
-					text-indent: -1ch;
-					position: relative;
-					overflow: hidden;
-				}
-
-				[data-page*="/Function-Index."] .markdown-section li code:after {
-					content: "\A ↳ \A ↳ \A ↳ \A ↳ \A ↳ \A ↳";
-					position: absolute;
-					left: 4px;
-					top: 0;
-					opacity: 0.5;
-				}
-			}
-
-			.markdown-section h1, 
-			.markdown-section h2 {
-				white-space: normal;
-				overflow: scroll;
-				text-overflow: ellipsis; /* Adds ... if text is too long */
-				min-width: 0;
-			}
-		</style>
 		<script>
 			/* Add word break opportunity after function opening parentheses */
 			postLoad = function(){

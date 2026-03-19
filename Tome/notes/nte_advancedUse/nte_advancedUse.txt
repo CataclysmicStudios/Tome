@@ -1,7 +1,5 @@
-/// @title Advanced Use
-/// @category Misc
-
 ## Live Reloading
+
 GitHub pages can regularly take a few minutes to update your site. To see a preview of your site immediately, you can use Docsify's live reloading feature. The steps to setting that up are as follows.
 1. Clone your site's repo locally using GitHub Desktop 
 2. Install [NodeJS](https://nodejs.org/en/download) 
@@ -14,13 +12,337 @@ GitHub pages can regularly take a few minutes to update your site. To see a prev
     5. Anytime your site is updated, the changes will instantly appear here as long as the command prompt is left open.
 
 ## Inline HTML
+
 In Tome you can write HTML into your docs and it will be rendered as expected.
 
 Here is an example using the homepage of these docs:
 ```html
+<h1 align = "center"> Tome </h1>
 <p align = "center">
-    <img src = "https://i.imgur.com/UEey42D.png" /> <br>
-    Tome is an easy to set up automated documentation site generator for your GameMaker projects! <br><br>
-    Download the last version <a href = "https://i.imgur.com/UEey42D.png">here</a>
+<img src = "https://i.imgur.com/m255R2h.png" /> <br>
+<b>Tome</b> is an easy to set up automated documentation site generator for your GameMaker projects! <br><br>
+Download the lastest version <a href = "https://https://github.com/CataclysmicStudios/Tome/releases">here</a>
 </p>
+```
+
+## Custom CSS
+
+Tome allows you to inject custom CSS directly into your generated documentation using `Tome.site.editCustomCSS()`. You can pass standard CSS strings or nested GameMaker structs, and Tome will automatically convert them to CSS that is used in your site!
+
+Is using custom CSS required? By all means no!
+
+By default, Tome provides a nice base canvas that should work for many use-cases right out of the box. However, we provide this functionality as a way for you to easily change your site without having to dig too deeply into the raw HTML and CSS files.
+
+Because Tome builds on top of **Docsify** and the **docsify-themeable** plugin, most global styling is controlled via CSS variables. Tome also introduces a few custom UI components and specific overrides to ensure the site functionality remains intact.
+
+### `Tome.site.editCustomCSS`
+
+You can directly override the documentation site's styling using `Tome.site.editCustomCSS()`. This function allows you to pass either a raw CSS string or a nested GameMaker struct containing your CSS rules.
+
+#### Using a Struct
+
+Passing a nested struct is a clean way to handle styling directly in GML.
+
+```gml
+var _myStyles = {
+    ":root": {
+        "--code-bg": "#1e1e1e",
+        "--code-color": "#d4d4d4"
+    },
+    ".tome-function": {
+        "border-left": "4px solid #11DD11"
+    }
+};
+
+Tome.site.editCustomCSS(_myStyles);
+
+```
+
+#### Using a CSS String
+
+If you prefer writing standard CSS, you can pass a formatted string instead.
+
+```gml
+var _cssString = @"
+:root {
+    --code-bg: #1e1e1e;
+    --code-color: #d4d4d4;
+}
+";
+
+Tome.site.editCustomCSS(_cssString);
+
+```
+
+#### Using an External CSS File
+
+If you prefer writing your CSS externally to your GameMaker project you can load that using `Tome.utils.fileTextReadAll()`, as this returns a string containing the raw file data.
+
+```gml
+Tome.site.editCustomCSS(Tome.utils.fileTextReadAll("path/to/your/cssfile.css"));
+
+```
+
+### Using Variables to Set CSS
+
+If you have a color you wish to use in multiple places you can use `Tome.utils.colorToCSSHex()`. This takes a GameMaker color value and turns it into the appropriate CSS hex string.
+
+?> Because GameMaker colors are processed as real numbers this works with all color constants, `$hex`, and results from `make_color_*` functions.
+
+You can insert the variables in structs. This can technically also be used in strings, but requires some major workarounds, so it is not officially supported in Tome.
+
+```gml
+var secondaryColor = Tome.utils.colorToCSSHex(c_yellow);
+var tertiaryColor = Tome.utils.colorToCSSHex(make_color_rgb(100, 200, 150));
+
+var _myStyles = {
+    ":root": {
+        "--code-bg": secondaryColor,
+        "--code-color": tertiaryColor
+    }
+};
+
+```
+<br>
+This is incredibly powerful when used in tandem with inline HTML, you can define custom classes that you can then target with your custom CSS!
+
+### Example: The Tome Documentation Site
+
+You can choose to customize as much or as little as you want for your own sites. Here you can see the CSS used to style the Tome docs site.
+
+```gml
+var cssOverrides = {
+    __order: [
+        ":root",
+        ".version-dropdown-selected",
+        ".version-dropdown-options",
+        ".version-dropdown-options li",
+        ".version-dropdown-options li:hover",
+        ".version-dropdown-options li.version-active",
+        ".sidebar .search input[type=\"search\"]:hover",
+        ".sidebar .search input[type=\"search\"]:focus",
+        ".sidebar-nav li a, .sidebar-nav li a code",
+        ".sidebar-nav li a:hover, .sidebar-nav li a:hover code",
+        ".sidebar-nav li a:hover strong, .sidebar-nav li a:hover code strong",
+        ".sidebar-nav li.version-active > a, .sidebar-nav li.version-active > a code, .sidebar-nav li.version-active > a:hover, .sidebar-nav li.version-active > a:hover code",
+        ".sidebar-nav li.version-active > a strong, .sidebar-nav li.version-active > a code strong, .sidebar-nav li.version-active > a:hover strong, .sidebar-nav li.version-active > a:hover code strong",
+        ".tome-type-separator",
+        ".tome-type-separator strong"
+    ],
+    ":root": {
+        __order: [
+            "--base-background-color",
+            "--sidebar-background",
+            "--base-color",
+            "--sidebar-nav-link-color--active",
+            "--sidebar-nav-link-color--hover",
+            "--search-background",
+            "--search-input-background-color",
+            "--search-input-border-color",
+            "--search-input-color",
+            "--search-input-placeholder-color",
+            "--search-input-focus-border-color"
+        ],
+        "--base-background-color": "#202225",
+        "--sidebar-background": "#18191c",
+        "--base-color": "#cccccc",
+        "--sidebar-nav-link-color--active": "#f5d342",
+        "--sidebar-nav-link-color--hover": "#a37df0",
+        "--search-background": "var(--sidebar-background)",
+        "--search-input-background-color": "var(--base-background-color)",
+        "--search-input-border-color": "#3a3f47",
+        "--search-input-color": "var(--base---sidebar-nav-link-color--active)",
+        "--search-input-placeholder-color": "#a0a5ab",
+        "--search-input-focus-border-color": "var(--sidebar-nav-link-color--hover)"
+    },
+    ".version-dropdown-selected": {
+        __order: [
+            "color",
+            "border-color",
+            "background-color",
+            "transition"
+        ],
+        "color": "var(--sidebar-nav-link-color--active)",
+        "border-color": "var(--sidebar-nav-link-color--active)",
+        "background-color": "var(--base-background-color)",
+        "transition": "color 0.2s ease, border-color 0.2s ease"
+    },
+    ".version-dropdown-options": {
+        __order: [
+            "background-color",
+            "border-color",
+            "box-shadow"
+        ],
+        "background-color": "var(--sidebar-background)",
+        "border-color": "#3a3f47",
+        "box-shadow": "0 4px 12px rgba(0, 0, 0, 0.4)"
+    },
+    ".version-dropdown-options li": {
+        __order: [
+            "color",
+            "background-color"
+        ],
+        "color": "#a0a5ab",
+        "background-color": "var(--sidebar-background)"
+    },
+    ".version-dropdown-options li:hover": {
+        __order: [
+            "color",
+            "background-color"
+        ],
+        "color": "var(--sidebar-nav-link-color--hover)",
+        "background-color": "#000"
+    },
+    ".version-dropdown-options li.version-active": {
+        __order: [
+            "color"
+        ],
+        "color": "var(--sidebar-nav-link-color--active)"
+    },
+    ".sidebar .search input[type=\"search\"]:hover": {
+        __order: [
+            "box-shadow",
+            "transition"
+        ],
+        "box-shadow": "0 0 0 1px var(--sidebar-nav-link-color--hover)",
+        "transition": "border-color 0.2s ease, box-shadow 0.2s ease"
+    },
+    ".sidebar .search input[type=\"search\"]:focus": {
+        __order: [
+            "box-shadow",
+            "transition"
+        ],
+        "box-shadow": "0 0 0 1px var(--sidebar-nav-link-color--active)",
+        "transition": "border-color 0.2s ease, box-shadow 0.2s ease"
+    },
+    ".sidebar-nav li a, .sidebar-nav li a code": {
+        __order: [
+            "color",
+            "transition"
+        ],
+        "color": "#a0a5ab",
+        "transition": "color 0.2s ease"
+    },
+    ".sidebar-nav li a:hover, .sidebar-nav li a:hover code": {
+        __order: [
+            "color"
+        ],
+        "color": "var(--sidebar-nav-link-color--hover)"
+    },
+    ".sidebar-nav li a:hover strong, .sidebar-nav li a:hover code strong": {
+        __order: [
+            "font-size",
+            "color"
+        ],
+        "font-size": "inherit",
+        "color": "inherit"
+    },
+    ".sidebar-nav li.version-active > a, .sidebar-nav li.version-active > a code, .sidebar-nav li.version-active > a:hover, .sidebar-nav li.version-active > a:hover code": {
+        __order: [
+            "color",
+            "font-weight"
+        ],
+        "color": "var(--sidebar-nav-link-color--active)",
+        "font-weight": "600"
+    },
+    ".sidebar-nav li.version-active > a strong, .sidebar-nav li.version-active > a code strong, .sidebar-nav li.version-active > a:hover strong, .sidebar-nav li.version-active > a:hover code strong": {
+        __order: [
+            "font-size",
+            "color"
+        ],
+        "font-size": "inherit",
+        "color": "inherit"
+    },
+    ".tome-type-separator": {
+        __order: [
+            "color"
+        ],
+        "color": "var(--sidebar-nav-link-color--active)"
+    },
+    ".tome-type-separator strong": {
+        __order: [
+            "font-size",
+            "color"
+        ],
+        "font-size": "inherit",
+        "color": "inherit"
+    }
+};
+
+Tome.site.editCustomCSS(cssOverrides);
+
+```
+
+### Tome Specific CSS Variables and Classes
+
+#### The Sidebar
+
+The sidebar contains several custom elements that require specific targeting if you choose to override their default appearances.
+
+##### The Version Selector
+
+The version selector relies on a custom HTML structure and uses `.version-active` instead of Docsify's default `.active` class to maintain state when users navigate the site.
+
+* `.version-dropdown-selected`: The main visible box showing the current version.
+
+* `.version-dropdown-options`: The container block for the dropdown list.
+
+* `.version-dropdown-options li`: The individual items in the dropdown list.
+
+* `.version-dropdown-options li:hover`: The state of an item when hovered by the mouse.
+
+* `.version-dropdown-options li.version-active`: The currently selected version within the dropdown.
+
+##### Search Bar
+
+The search bar uses docsify-themeable CSS variables for its colors. You can redefine these in your `:root` CSS block to change the search bar's appearance:
+
+* `--search-background`
+
+* `--search-input-background-color`
+
+* `--search-input-border-color`
+
+* `--search-input-color`
+
+* `--search-input-placeholder-color`
+
+* `--search-input-focus-border-color`
+
+*Note: Docsify-themeable achieves the search bar's focus glow using `box-shadow` rather than a standard border. Modifying the border-color variable alone will not change the glow. You must override the box-shadow on the `:focus` and `:hover` pseudo-classes directly.*
+
+##### Navigation List Items
+
+Sidebar navigation links can be customized using standard CSS selectors. However, because sidebar links often contain markdown code blocks (backticks), standard text color overrides on the `<a>` tag will not automatically cascade down to them.
+
+* When styling `.sidebar-nav li a:hover` and `.sidebar-nav li.active > a`, you must explicitly target the nested `code` and `strong` tags alongside the anchor tags to ensure your color changes apply seamlessly to all the text.
+
+#### Primary Content Area
+
+Tome generates specific classes within the main documentation body to structure API reference materials. You can target these directly to change typography, spacing, and borders:
+
+* `.tome-group-header`: Used for major section headers. By default, this features a large font size, a custom margin, and a bottom border.
+
+* `.tome-function`: Wraps the function declaration blocks. Uses a left margin for indentation.
+
+* `.tome-type-separator`: The visual separator (often a colon or arrow) between arguments and their data types.
+
+* `.tome-methods-header`: Headers specifically denoting methods within structs or classes.
+
+### Further Customization (Docsify-Themeable)
+
+For all other global site modifications—such as overall typography, scrollbars, code block themes, and markdown rendering—Tome relies on the extensive CSS variable system provided by `docsify-themeable`.
+
+You can view the complete list of hundreds of exposed CSS variables available for override in the official documentation:
+[**Docsify-Themeable Customization Options**](https://jhildenbiddle.github.io/docsify-themeable/#/customization)
+
+## Site Cross Linking
+
+You can link between pages by providing a relative link. All site files are generated with the name `category-dashed-title-dashed`, where all characters that are illegal on any file system are replaced with dashes.
+
+Here is an example from within the Tome docs:
+
+```markdown
+Check out [this](api-reference-primary-functions) for more information.
+
 ```

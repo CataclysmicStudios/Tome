@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"Tome",
   "AudioGroups":[
-    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -26,7 +26,6 @@
     {"$GMIncludedFile":"","%Name":"docsIcon.png","CopyToMask":-1,"filePath":"datafiles/Tome/assets","name":"docsIcon.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"config.js","CopyToMask":-1,"filePath":"datafiles/Tome","name":"config.js","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"index.html","CopyToMask":-1,"filePath":"datafiles/Tome","name":"index.html","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"_config.js","CopyToMask":-1,"filePath":"datafiles/UnmodifiedFiles","name":"_config.js","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"_tomeConfig.gml","CopyToMask":-1,"filePath":"datafiles/UnmodifiedFiles","name":"_tomeConfig.gml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"_tomeDocSetup.gml","CopyToMask":-1,"filePath":"datafiles/UnmodifiedFiles","name":"_tomeDocSetup.gml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
@@ -52,8 +51,6 @@
     {"id":{"name":"nte_slugs","path":"notes/nte_slugs/nte_slugs.yy",},},
     {"id":{"name":"rm_test","path":"rooms/rm_test/rm_test.yy",},},
     {"id":{"name":"__tome","path":"scripts/__tome/__tome.yy",},},
-    {"id":{"name":"__tomeInit","path":"scripts/__tomeInit/__tomeInit.yy",},},
-    {"id":{"name":"__tomeSystemFunctions","path":"scripts/__tomeSystemFunctions/__tomeSystemFunctions.yy",},},
     {"id":{"name":"demoDocSetup","path":"scripts/demoDocSetup/demoDocSetup.yy",},},
     {"id":{"name":"scr_demo_concat_part1","path":"scripts/scr_demo_concat_part1/scr_demo_concat_part1.yy",},},
     {"id":{"name":"scr_demo_concat_part2","path":"scripts/scr_demo_concat_part2/scr_demo_concat_part2.yy",},},

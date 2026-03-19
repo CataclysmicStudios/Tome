@@ -84,7 +84,7 @@
     transform: scale(1.05);
 }"
 
-function tomeSetup(){
+function __________tomeSetup(){
     // Initialize the site data - MUST BE FIRST
     Tome.site.setName("Tome Stress Test Suite");
     

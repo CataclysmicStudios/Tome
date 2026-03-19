@@ -2,34 +2,17 @@
 #macro TOME_ENABLED true
 
 // Where your tomeSetup function is defined. This is used for clear debugging information. This should always be a string
-#macro TOME_SETUP_SCRIPT_FILE "demoDocSetup"
+#macro TOME_SETUP_SCRIPT_FILE "tomeDocSetup"
 
 // Where your docs will be placed
-#macro TOME_LOCAL_REPO_PATH "E:/TomeTest/Tome"
+#macro TOME_LOCAL_REPO_PATH "E:/Github/CataSite/Tome-Docs"
 
 // Show extended debug information in the console when generating your docs
 #macro TOME_VERBOSE true
 
-/*/
- * Determines how depth of method groups in sidebar.
- * A value of H2 will place group header in line with constructor.
- * Ex.
- *  Page Title
- *  |---constructor()
- *  |   |---methodA()
- *  |---Group
- *  |   |---methodB()
- * 
- * A value of H3 will place group header in line with methods.
- * Ex.
- *  Page Title
- *  |---constructor()
- *      |---methodA()
- *      |---Group
- *      |---methodB()
- * 
-/*/
+// Determines how depth of method groups in sidebar. Check out the docs for more information.
 #macro TOME_METHOD_GROUP_DEPTH TOME_METHOD_GROUP_DEPTH_HEADER.H2
 
+// Controls if the generated markdown wraps types in curly brackets.
 #macro TOME_DISPLAY_TYPE_IN_BRACKETS true
 
