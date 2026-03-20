@@ -20,7 +20,7 @@ global.__tome = {
 
 #macro __TOME_FILE_OPEN_FAILED -1
 
-#macro __TOME_VERSION "01-29-2026"
+#macro __TOME_VERSION "1.0.0"
 
 #macro __TOME_NEW_CONTEXT variable_clone({                                          \
                                 _contextType: __TOME_CONTEXT_TYPE.TEXT,             \

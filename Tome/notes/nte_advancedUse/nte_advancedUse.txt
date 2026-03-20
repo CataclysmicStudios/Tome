@@ -39,13 +39,15 @@ Because Tome builds on top of **Docsify** and the **docsify-themeable** plugin, 
 
 You can directly override the documentation site's styling using `Tome.site.editCustomCSS()`. This function allows you to pass either a raw CSS string or a nested GameMaker struct containing your CSS rules.
 
-#### Using a Struct
+#### Using a Struct (Recommended Method)
 
 Passing a nested struct is a clean way to handle styling directly in GML.
 
 ```gml
 var _myStyles = {
+    __order: [":root", ".tome-function"],
     ":root": {
+        __order: ["--code-bg", "--code-color"],
         "--code-bg": "#1e1e1e",
         "--code-color": "#d4d4d4"
     },
@@ -58,7 +60,9 @@ Tome.site.editCustomCSS(_myStyles);
 
 ```
 
-#### Using a CSS String
+?> If you are adding multiple items of which the order matters you can add a special array as a member of the struct under the name __order. Fill the array with strings containing the order you wish the finalized CSS to be ordered. This is available for use at all depths. 
+
+#### Using a CSS String (Less Support)
 
 If you prefer writing standard CSS, you can pass a formatted string instead.
 
@@ -74,7 +78,7 @@ Tome.site.editCustomCSS(_cssString);
 
 ```
 
-#### Using an External CSS File
+#### Using an External CSS File (Best For Setup Bloat Reduction)
 
 If you prefer writing your CSS externally to your GameMaker project you can load that using `Tome.utils.fileTextReadAll()`, as this returns a string containing the raw file data.
 
@@ -123,11 +127,8 @@ var cssOverrides = {
         ".sidebar .search input[type=\"search\"]:focus",
         ".sidebar-nav li a, .sidebar-nav li a code",
         ".sidebar-nav li a:hover, .sidebar-nav li a:hover code",
-        ".sidebar-nav li a:hover strong, .sidebar-nav li a:hover code strong",
-        ".sidebar-nav li.version-active > a, .sidebar-nav li.version-active > a code, .sidebar-nav li.version-active > a:hover, .sidebar-nav li.version-active > a:hover code",
-        ".sidebar-nav li.version-active > a strong, .sidebar-nav li.version-active > a code strong, .sidebar-nav li.version-active > a:hover strong, .sidebar-nav li.version-active > a:hover code strong",
-        ".tome-type-separator",
-        ".tome-type-separator strong"
+        ".sidebar-nav li.active > a, .sidebar-nav li.active > a code, .sidebar-nav li.active > a:hover, .sidebar-nav li.active > a:hover code",
+        ".tome-type-separator"
     ],
     ":root": {
         __order: [
@@ -218,54 +219,57 @@ var cssOverrides = {
     ".sidebar-nav li a, .sidebar-nav li a code": {
         __order: [
             "color",
-            "transition"
+            "transition",
+            "strong"
         ],
-        "color": "#a0a5ab",
-        "transition": "color 0.2s ease"
+        "color": "#a0a5ab" ,
+        "transition": "color 0.2s ease",
+        "strong": {
+            __order: [
+                "font-size",
+                "color"
+            ],
+            "font-size": "inherit",
+            "color": "inherit"
+        }
     },
     ".sidebar-nav li a:hover, .sidebar-nav li a:hover code": {
         __order: [
-            "color"
+            "color",
+            "strong"
         ],
-        "color": "var(--sidebar-nav-link-color--hover)"
+        "color": "var(--sidebar-nav-link-color--hover)",
+        "strong": {
+            __order: [
+                "font-size",
+                "color"
+            ],
+            "font-size": "inherit",
+            "color": "inherit"
+        }
     },
-    ".sidebar-nav li a:hover strong, .sidebar-nav li a:hover code strong": {
-        __order: [
-            "font-size",
-            "color"
-        ],
-        "font-size": "inherit",
-        "color": "inherit"
-    },
-    ".sidebar-nav li.version-active > a, .sidebar-nav li.version-active > a code, .sidebar-nav li.version-active > a:hover, .sidebar-nav li.version-active > a:hover code": {
+    ".sidebar-nav li.active > a, .sidebar-nav li.active > a code, .sidebar-nav li.active > a:hover, .sidebar-nav li.active > a:hover code": {
         __order: [
             "color",
-            "font-weight"
+            "font-weight",
+            "strong"
         ],
         "color": "var(--sidebar-nav-link-color--active)",
-        "font-weight": "600"
-    },
-    ".sidebar-nav li.version-active > a strong, .sidebar-nav li.version-active > a code strong, .sidebar-nav li.version-active > a:hover strong, .sidebar-nav li.version-active > a:hover code strong": {
-        __order: [
-            "font-size",
-            "color"
-        ],
-        "font-size": "inherit",
-        "color": "inherit"
+        "font-weight": "600",
+        "strong": {
+            __order: [
+                "font-size",
+                "color"
+            ],
+            "font-size": "inherit",
+            "color": "inherit"
+        }
     },
     ".tome-type-separator": {
         __order: [
             "color"
         ],
         "color": "var(--sidebar-nav-link-color--active)"
-    },
-    ".tome-type-separator strong": {
-        __order: [
-            "font-size",
-            "color"
-        ],
-        "font-size": "inherit",
-        "color": "inherit"
     }
 };
 

@@ -307,7 +307,7 @@ function PhysicsBody(_coordinate) constructor {
 | `@title`                                    | The title of the page as displayed in the sidebar                                       | No          |
 | `@category`                                 | What category in the sidebar that the page will be put under                            | No          |
 | `@end`                                      | Signals Tome to close a constructor context. This is only needed if you plan to place unrelated text or code after you've closed out a constructor| No |
-| `@pass`                                     | Signlas Tome to change its passing state. See table below for more information          | No          |
+| `@pass`                                     | Signals Tome to change its passing state. See table below for more information          | No          |
 
 
 
