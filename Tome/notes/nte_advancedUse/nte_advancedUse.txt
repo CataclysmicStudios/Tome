@@ -21,7 +21,7 @@ Here is an example using the homepage of these docs:
 <p align = "center">
 <img src = "https://i.imgur.com/m255R2h.png" /> <br>
 <b>Tome</b> is an easy to set up automated documentation site generator for your GameMaker projects! <br><br>
-Download the lastest version <a href = "https://https://github.com/CataclysmicStudios/Tome/releases">here</a>
+Download the lastest version <a href = "https://github.com/CataclysmicStudios/Tome/releases">here</a>
 </p>
 ```
 
@@ -83,7 +83,7 @@ Tome.site.editCustomCSS(_cssString);
 If you prefer writing your CSS externally to your GameMaker project you can load that using `Tome.utils.fileTextReadAll()`, as this returns a string containing the raw file data.
 
 ```gml
-Tome.site.editCustomCSS(Tome.utils.fileTextReadAll("path/to/your/cssfile.css"));
+Tome.site.editCustomCSS(Tome.utils.fileReadAllText("path/to/your/cssfile.css"));
 
 ```
 

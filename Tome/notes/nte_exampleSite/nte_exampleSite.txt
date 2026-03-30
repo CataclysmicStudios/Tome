@@ -18,7 +18,7 @@ function tomeSetup(){
     
     Tome.site.setDescription("Documentation for the Tome library"); 
     Tome.site.setLatestVersion("1.0.0"); 
-Tome.site.setOlderVersions(["0.5.0", "0.4.0", "0.3.0", "0.2.0", "0.1.0"]);
+    Tome.site.setOlderVersions(["0.5.0", "0.4.0", "0.3.0", "0.2.0", "0.1.0"]);
     
     /*/
      * Set any theme data here!
@@ -47,21 +47,20 @@ Tome.site.setOlderVersions(["0.5.0", "0.4.0", "0.3.0", "0.2.0", "0.1.0"]);
      * Add any information you want added to the navbar here!
     /*/ 
     
-    Tome.site.addNavbarLink("Report a bug", "https:github.com/CataclysmicStudios/Tome/issues"); 
-    Tome.site.addNavbarLink("Releases", "https:github.com/CataclysmicStudios/Tome/releases");
+    Tome.site.addNavbarLink("https://github.com/CataclysmicStudios/Tome/issues", "Report a bug"); 
+    Tome.site.addNavbarLink("https://github.com/CataclysmicStudios/Tome/releases", "Releases");
      
 }
 ```
 
 ## Breakdown
-?> For the most part the order in which you call these functions does not matter, this is just how I've arranged them. The exception to this rule is tome_set_site_name(). This is the trigger for Tome to set up all of it's tracked data. Placing anything before this will result in unexpected (potentially fatal crash) behavior.
+?> The order in which you call these functions does not matter, this is just how I've arranged them.
 
-- `tome_add` points to a script, note, or external file that we have setup with at least the `@title` and `@category` tag.
-- `tome_add_raw` points to a note or external file that only contains markdown. This markdown is added to the site as is.
-- `tome_add_sidebar_link` Adds a link in the sidebar of the site
-- `tome_set_homepage` Sets what your site's homepage will be, and is required!
-- `tome_set_site_name` Sets what name will displayed in your browser's tab
-- `tome_set_site_latest_version` Sets the latest version, which will be the default verson of your docs that will be shown when the site is loaded, changing this will add a new version in the version selecter and the older versions will stay unchanged as they were before this was changed.
-- `tome_set_site_theme_color` Sets the accent color of your site(More custimization options are planned for the future.)
+- `Tome.site.add()` points to a script, note, or external file that we have setup with at least the `@title` and `@category` tag.
+- `Tome.site.addRaw()` points to a note or external file that only contains markdown. This markdown is added to the site as is.
+- `Tome.site.setHomepage()` Sets what your site's homepage will be, and is required!
+- `Tome.site.setName()` Sets what name will displayed in your browser's tab
+- `Tome.site.setLatestVersion()` Sets the latest version, which will be the default verson of your docs that will be shown when the site is loaded, changing this will add a new version in the version selecter and the older versions will stay unchanged as they were before this was changed.
+- `Tome.site.setThemeColor()` Sets the accent color of your site(More custimization options are planned for the future.)
 
 Find more info on formatting your scripts for Tome [here](api-reference-primary-functions)

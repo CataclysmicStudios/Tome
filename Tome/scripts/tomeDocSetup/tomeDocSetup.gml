@@ -198,8 +198,8 @@ function tomeSetup(){
      * Add any information you want added to the navbar here!
     /*/ 
     
-    Tome.site.addNavbarLink("https//:github.com/CataclysmicStudios/Tome/issues", "Report a bug"); 
-    Tome.site.addNavbarLink("https//:github.com/CataclysmicStudios/Tome/releases", "Releases");
+    Tome.site.addNavbarLink("https://github.com/CataclysmicStudios/Tome/issues", "Report a bug"); 
+    Tome.site.addNavbarLink("https://github.com/CataclysmicStudios/Tome/releases", "Releases");
      
 }
 
