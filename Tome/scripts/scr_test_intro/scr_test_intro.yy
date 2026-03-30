@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_test_intro",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_test_intro",
+  "parent":{
+    "name":"Warnings",
+    "path":"folders/Tests/Warnings.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

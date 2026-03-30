@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"__tomeInit",
+  "%Name":"scr_demo_network_client",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"__tomeInit",
+  "name":"scr_demo_network_client",
   "parent":{
-    "name":"_system",
-    "path":"folders/Tome/_system.yy",
+    "name":"Demo",
+    "path":"folders/Tests/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

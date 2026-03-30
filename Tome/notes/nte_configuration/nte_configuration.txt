@@ -1,6 +1,3 @@
-/// @title Configuration
-/// @category API Reference
-
 The following macros are used for configuring your site's repo, as well as a few general settings. These macros are located in the script `tomeConfig`.
 
 ## Macros
@@ -8,5 +5,35 @@ The following macros are used for configuring your site's repo, as well as a few
 | Macro Name                       | Purpose                                                                                                                                    |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `TOME_ENABLED`                   | Whether or not to enable the system to run when your project is ran.                                                                       |
-| `TOME_VERBOSE`                   | Show extended debug information in the console                                                                                             |                                                                                                                                      |
+| `TOME_SETUP_SCRIPT_FILE`         | The resource file that contains your `tomeSetup` function declaration. This is used for clearer debugging and is not required. By default this is set to "tomeDocsSetup" and only needs changed if you move your `tomeSetup` declaration to another file. |
 | `TOME_LOCAL_REPO_PATH`           | This is the path to the local repo used for your site                                                                            |
+| `TOME_VERBOSE`                   | Show extended debug information in the console                                                                                             |                                                                                                                                      |
+| `TOME_METHOD_GROUP_DEPTH`        | The header depth that method groups are displayed at when rendered in HTML. See information below about `TOME_METHOD_GROUP_DEPTH_HEADER` |
+| `TOME_DISPLAY_TYPE_IN_BRACKETS`  | Controls if the generated markdown wraps types in curly brackets. If set to true types will be displayed as `{type}`, if false they will be displayed as `type` |
+
+## Enums
+
+### `TOME_METHOD_GROUP_DEPTH_HEADER` 
+
+| Value | Purpose |
+| ----- | ------- |
+| `H2`  | Will place the header for groups as a level two header. |
+| `H3`  | Will place the header for groups as a level three header. |
+
+
+A value of H2 will place group header in line with constructor.
+```example
+Page Title
+|---constructor()
+|   |---methodA()
+|---Group
+|   |---methodB()
+```
+A value of H3 will place group header in line with methods.
+```example
+Page Title
+|---constructor()
+|---methodA()
+|---Group
+|---methodB()
+```

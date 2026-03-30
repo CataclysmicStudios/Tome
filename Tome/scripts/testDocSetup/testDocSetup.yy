@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"__tomeSystemFunctions",
+  "%Name":"testDocSetup",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"__tomeSystemFunctions",
+  "name":"testDocSetup",
   "parent":{
-    "name":"_system",
-    "path":"folders/Tome/_system.yy",
+    "name":"Warnings",
+    "path":"folders/Tests/Warnings.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

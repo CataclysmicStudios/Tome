@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"__tomeFuncQueue",
+  "%Name":"scr_demo_concat_part1",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"__tomeFuncQueue",
+  "name":"scr_demo_concat_part1",
   "parent":{
-    "name":"_system",
-    "path":"folders/Tome/_system.yy",
+    "name":"Demo",
+    "path":"folders/Tests/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

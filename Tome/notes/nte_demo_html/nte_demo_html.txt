@@ -1,0 +1,60 @@
+<div class="roulette-container">
+<h1 class="roulette-title">SFW Image Roulette Grid</h1>
+<p>This grid generates unique, safe-for-work images from Picsum using random seeds. Loading dynamically with CSS animations!</p>
+<div id="imgur-roulette-grid" class="roulette-grid"></div>
+<button id="load-more-btn" class="roulette-btn">Load 32 More Images</button>
+</div>
+
+<script>
+const grid = document.getElementById('imgur-roulette-grid');
+const loadBtn = document.getElementById('load-more-btn');
+const batchSize = 32;
+
+function generateRandomSeed() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    for (let i = 0; i < 8; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return id;
+}
+
+function createRouletteImage() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'roulette-wrapper';
+
+    const spinner = document.createElement('div');
+    spinner.className = 'roulette-spinner';
+    
+    const img = document.createElement('img');
+    img.className = 'roulette-image';
+    img.style.opacity = '0';
+    img.style.position = 'absolute';
+    img.style.top = '0';
+    img.style.left = '0';
+    
+    img.onload = () => {
+        img.style.opacity = '1';
+        spinner.style.display = 'none';
+        wrapper.style.border = 'none';
+    };
+
+    img.src = 'https://picsum.photos/seed/' + generateRandomSeed() + '/300/200';
+
+    wrapper.appendChild(spinner);
+    wrapper.appendChild(img);
+    grid.appendChild(wrapper);
+}
+
+function loadBatch() {
+    for (let i = 0; i < batchSize; i++) {
+        createRouletteImage();
+    }
+}
+
+loadBtn.addEventListener('click', () => {
+    loadBatch();
+});
+
+loadBatch();
+</script>
