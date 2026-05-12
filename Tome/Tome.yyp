@@ -32,11 +32,12 @@
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.14.4.221",
+    "IDEVersion":"2024.14.4.222",
   },
   "name":"Tome",
   "resources":[
     {"id":{"name":"nte_advancedUse","path":"notes/nte_advancedUse/nte_advancedUse.yy",},},
+    {"id":{"name":"nte_ci","path":"notes/nte_ci/nte_ci.yy",},},
     {"id":{"name":"nte_configuration","path":"notes/nte_configuration/nte_configuration.yy",},},
     {"id":{"name":"nte_demo_concat_bridge","path":"notes/nte_demo_concat_bridge/nte_demo_concat_bridge.yy",},},
     {"id":{"name":"nte_demo_homepage","path":"notes/nte_demo_homepage/nte_demo_homepage.yy",},},

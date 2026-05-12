@@ -1,0 +1,43 @@
+# Drop this file into your repo's .github/workflows/ folder.
+#
+# One-time GitHub Pages setup (cannot be automated):
+#   Settings > Pages > Build and deployment
+#   Source: "Deploy from a branch"   Branch: gh-pages   Folder: /
+#
+# Required workflow permissions (already declared below):
+#   contents: write   — push to gh-pages
+#   issues:   write   — only needed when create-issue-on-failure: "true"
+
+name: Generate Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: >-
+          Docs version to generate. Leave empty to refresh the current version
+          from gh-pages
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  generate-docs:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed so git ls-remote can see the gh-pages branch
+
+      - uses: tinkerer-red/GML-Actions/actions/generate-docs@v2
+        with:
+          # project-file: "Tome/Tome.yyp"   # set when multiple .yyp files exist
+          release-tag:             ${{ github.event.inputs.release_tag }}
+          output-path:             "C:/tome-output"
+          create-issue-on-failure: "false"
+          verbose:                 "false"

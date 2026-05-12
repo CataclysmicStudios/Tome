@@ -16,7 +16,7 @@ global.__tome = {
 
 #macro Tome global.__tome
 
-#macro __TOME_CAN_RUN (TOME_ENABLED && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
+#macro __TOME_CAN_RUN ((TOME_ENABLED || __tomeIsCiMode()) && (GM_build_type == "run") && ((os_type == os_windows) || (os_type == os_macosx) || (os_type == os_linux)))
 
 #macro __TOME_FILE_OPEN_FAILED -1
 
@@ -667,16 +667,25 @@ function __tomeGenerateDocs(){
     
 #region File I/O
 
+#region /// @func __tomeIsCiMode()
+/// @desc Returns whether Tome is running in CI/automation mode, detected via the TOME_CI_MODE environment variable.
+/// @returns {bool}
+function __tomeIsCiMode(){
+    return environment_get_variable("TOME_CI_MODE") == "1";
+}
+#endregion // __tomeIsCiMode
+
 #region /// @func __tomeVerifyRepoPath()
-/// @desc Makes sure TOME_LOCAL_REPO_PATH path is a valid directory
+/// @desc Makes sure the output path is a valid directory. Uses the TOME_OUTPUT_PATH environment variable when present, otherwise falls back to the TOME_LOCAL_REPO_PATH macro.
 function __tomeVerifyRepoPath(){
-    var _repoPathWithAddedForwardSlash = TOME_LOCAL_REPO_PATH; 
-    
+    var _envOutputPath = environment_get_variable("TOME_OUTPUT_PATH");
+    var _repoPathWithAddedForwardSlash = (_envOutputPath != "") ? _envOutputPath : TOME_LOCAL_REPO_PATH;
+
     // In case the user didn't end their repo filepath with "/", add it
     if (!string_ends_with(_repoPathWithAddedForwardSlash, "/")){
         _repoPathWithAddedForwardSlash += "/";
     }
-    
+
     if (!directory_exists(_repoPathWithAddedForwardSlash)){
         __tomeTrace("Repo directory does not exist, creating now...", false, 1, false);
         directory_create(_repoPathWithAddedForwardSlash);
@@ -1928,13 +1937,13 @@ function __tomeStructToCSS(_cssStruct, _indent = ""){
         var _key = _orderedKeys[_i];
         var _value = _cssStruct[$ _key];
         
-        if (is_struct(_value)){
-            _nestedString += $"{_indent}{_key}{"{"}\n";
-            _nestedString += __tomeStructToCSS(_value, _indent + "\t");
-            _nestedString += $"{_indent}{"}"}\n\n";
-        }else{
-            _propertyString += $"{_indent}{_key}: {_value};\n";
-        }
+		if (is_struct(_value)) {
+			_nestedString += _indent + _key + "{\n";
+			_nestedString += __tomeStructToCSS(_value, _indent + "\t");
+			_nestedString += _indent + "}\n\n";
+		} else {
+			_propertyString += _indent + _key + ": " + string(_value) + ";\n";
+		}
         
         _i++;
     }
@@ -2262,8 +2271,9 @@ function __tomeTrace(_text, _verboseOnly = false, _indentation = 0, _includePref
     
     var _finalMessageString = _indentationString + $"{_tomePrefix}{_text}";
     
-	if ((_verboseOnly && TOME_VERBOSE) || !_verboseOnly){
-		show_debug_message(_finalMessageString);	
+	var _verbose = TOME_VERBOSE || environment_get_variable("TOME_CI_VERBOSE") == "1";
+	if ((_verboseOnly && _verbose) || !_verboseOnly){
+		show_debug_message(_finalMessageString);
 	}
 }
 #endregion // __tomeTrace
@@ -2379,14 +2389,18 @@ if (__TOME_CAN_RUN){
     
     if (GM_is_sandboxed){
         __tomeTrace("Tome is set to run, but GameMaker's file system sandbox is enabled. Tome will not function with this enabled. To disable, go to Game Options -> Platform (Windows, macOS, Ubuntu) -> Check the \"Disable file system sandbox\".");
-    
-        if (string_ends_with(GM_project_filename, "Tome/Tome.yyp")){
+
+        if (string_ends_with(GM_project_filename, "Tome/Tome.yyp") || __tomeIsCiMode()){
             game_end();
         }
     }else{
         global.__tomeInitTimeSource = time_source_create(time_source_global, 1, time_source_units_frames, function(){
-            
+
             __tomeTrace($"Tome Enabled, Version: {__TOME_VERSION}");
+
+            if (__tomeIsCiMode()){
+                __tomeTrace("CI mode detected (TOME_CI_MODE=1)");
+            }
 
             __tomeSetupData();
 
@@ -2394,36 +2408,50 @@ if (__TOME_CAN_RUN){
 
             tomeSetup();
 
+            if (__tomeIsCiMode()){
+                var _ciReleaseTag = environment_get_variable("TOME_RELEASE_TAG");
+                if (_ciReleaseTag != ""){
+                    Tome.site.setLatestVersion(_ciReleaseTag);
+                }
+
+                var _ciOlderVersions = environment_get_variable("TOME_OLDER_VERSION");
+                if (_ciOlderVersions != ""){
+                    Tome.site.setOlderVersions(json_parse(_ciOlderVersions));
+                }
+            }
+
             __tomeTrace("Generating docs...", false, 1, false);
-            
+
             __tomeGenerateDocs();
-            
+
             var _warningsFound = array_length(Tome.__data.warnings) > 0;
-            
+
             if (_warningsFound){
                 __tomeTrace("Warnings:", false, 1, false);
-                
+
                 var _i = 0;
-                
+
                 repeat(array_length(Tome.__data.warnings)){
                     var _currentWarning = Tome.__data.warnings[_i];
-                    
+
                     __tomeTrace(_currentWarning, false, 2, false);
-                    
+
                     _i++;
                 }
             }
-            
-            
+
+
             var _finalMessage = Tome.__data.docGenerationFailed ? "Doc generation failed: Please see warnings above!\n" : "All docs generated!\n";
-            
+
             __tomeTrace(_finalMessage);
-            
+
+            __tomeTrace($"Output path: {Tome.__data.repoFilePath}");
+
             time_source_destroy(global.__tomeInitTimeSource);
 
             Tome = undefined;
 
-            if (string_ends_with(GM_project_filename, "Tome/Tome.yyp")){
+            if (string_ends_with(GM_project_filename, "Tome/Tome.yyp") || __tomeIsCiMode()){
                 game_end();
             }
 

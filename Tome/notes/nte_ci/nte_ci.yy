@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"nte_ci",
+  "name":"nte_ci",
+  "parent":{
+    "name":"Docs",
+    "path":"folders/Docs.yy",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

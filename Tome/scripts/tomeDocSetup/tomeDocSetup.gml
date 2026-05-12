@@ -188,8 +188,9 @@ function tomeSetup(){
     Tome.site.add("__tome"); 
     Tome.site.addRaw("nte_configuration", "Configuration", "API Reference");
     
-    Tome.site.addRaw("nte_settingUp", "Setting Up Tome", "Getting Started"); 
-    Tome.site.addRaw("nte_exampleSite", "Setting Up Your Site", "Getting Started"); 
+    Tome.site.addRaw("nte_settingUp", "Setting Up Tome", "Getting Started");
+    Tome.site.addRaw("nte_exampleSite", "Setting Up Your Site", "Getting Started");
+    Tome.site.addRaw("nte_ci", "Running Tome in CI", "Getting Started");
     
     Tome.site.add("nte_formattingScripts", "nte_slugs"); 
     Tome.site.addRaw("nte_advancedUse", "Advanced Use", "Misc");

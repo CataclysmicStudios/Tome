@@ -1,0 +1,68 @@
+Tome supports running in CI/CD pipelines (GitHub Actions, GitLab CI, etc.) without any code changes to your project. Environment variables control the runtime behavior.
+
+## Environment Variables
+
+| Variable              | Required | Purpose                                                                                                                              |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `TOME_CI_MODE`        | Yes      | Set to `1`. Tells Tome to call `game_end()` after generation completes. Also bypasses `TOME_ENABLED` so the action always runs.     |
+| `TOME_OUTPUT_PATH`    | No       | Absolute path for the output directory. Overrides `TOME_LOCAL_REPO_PATH` at runtime.                                                |
+| `TOME_RELEASE_TAG`    | No       | Version string for the current release (e.g. `v1.2.0`). Applied after `tomeSetup()`, overriding any `setLatestVersion` call. If not set, whatever `tomeSetup` set stands. |
+| `TOME_OLDER_VERSION`  | No       | JSON array of older version strings (e.g. `["v1.1.0","v1.0.0"]`). Applied after `tomeSetup()`, overriding any `setOlderVersions` call. If not set, whatever `tomeSetup` set stands. |
+| `TOME_CI_VERBOSE`     | No       | Set to `1` to enable verbose logging during CI runs. Equivalent to the `TOME_CI_VERBOSE` macro but controllable at runtime without recompiling. |
+
+?> When `TOME_CI_MODE=1`, Tome will run even if `TOME_ENABLED` is `false`. `TOME_ENABLED` is intended for toggling Tome during local development. CI mode bypasses it so your workflow never requires a code change to operate.
+
+?> `TOME_RELEASE_TAG` and `TOME_OLDER_VERSION` are applied **after** your `tomeSetup()` function runs, so they always take precedence over any `setLatestVersion` or `setOlderVersions` calls made inside it. If neither env var is set, whatever your `tomeSetup` configured is used as-is.
+
+## General Model
+
+Regardless of your CI provider, the execution model is the same:
+
+1. Compile your GameMaker project (`TOME_ENABLED` does not need to be `true` — `TOME_CI_MODE` bypasses it)
+2. Run the compiled game with `TOME_CI_MODE=1` and `TOME_OUTPUT_PATH` set
+3. Tome generates docs and calls `game_end()` automatically
+4. Upload or publish the output directory
+
+## GitHub Actions Example
+
+The example below assumes you have a compiled runner available. Your workflow will differ based on how you compile, but the Tome-specific environment variables are the same regardless.
+
+```yaml
+- name: Generate docs
+  env:
+    TOME_CI_MODE: "1"
+    TOME_OUTPUT_PATH: "${{ github.workspace }}/docs-output/"
+  run: ./Runner.exe -game YourProject.win
+```
+
+After this step, upload the output directory to GitHub Pages, an artifact, or wherever your docs are hosted.
+
+## CI Log Parsing
+
+Tome prints one of these lines at the end of generation, which you can use to detect success or failure in CI logs:
+
+```
+Tome: All docs generated!
+Tome: Doc generation failed: Please see warnings above!
+```
+
+The resolved output path is also printed:
+
+```
+Tome: Output path: /path/to/docs-output/
+```
+
+## What Stays in Your Project
+
+CI mode does not require any changes to your `tomeSetup()` function. All CI-specific configuration is passed via environment variables. Your setup should remain focused on project-specific configuration:
+
+```gml
+function tomeSetup() {
+    Tome.site.setName("My Project");
+    Tome.site.setDescription("My project's documentation.");
+    Tome.site.setLatestVersion("1.0.0");
+    Tome.site.add("myScript");
+}
+```
+
+Do not add `game_end()` calls to `tomeSetup()`. When `TOME_CI_MODE=1`, Tome handles shutdown automatically.
